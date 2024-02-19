@@ -2,7 +2,7 @@ import json
 from datetime import date
 from urllib.request import urlopen
 import time
-
+from ydata_profiling import ProfileReport
 import altair as alt
 import numpy as np
 import pandas as pd
