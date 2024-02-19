@@ -31,6 +31,19 @@ def local_css(file_name):
 def remote_css(url):
     st.markdown(f'<link href="{url}" rel="stylesheet">',unsafe_allow_html = True)
 
+# Display lottie animations
+def load_lottieurl(url):
+
+    # get the url
+    r = requests.get(url)
+    # if error 200 raised return Nothing
+    if r.status_code !=200:
+        return None
+    return r.json()
+
+# Extract Lottie Animations
+
+lottie_eda = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_ic37y4kv.json")
 
 menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
@@ -69,6 +82,83 @@ average_floors = df['NoofFloor'].mean()
 
 # Round the average to the nearest integer
 rounded_average_floors = round(average_floors)
+
+# Retreive detailed report of the Exploratory Data Analysis
+def profile(df):
+    pr = ProfileReport(df, explorative=True)
+    tbl = st_profile_report(pr)
+    return  tbl
+
+# Save the data in memory
+df = st.session_state['table']
+
+# EDA page
+
+if menu_id == "EDA":
+
+    # Drop unnecessary columns
+    df1 = df.drop(['FID','ParcelID','PID','F__id','Source','ObjectID', 'FINAL_CONS'],axis=1)
+    
+
+    # 2 Column Layouts of Same Size
+    col4,col5 = st.columns([1,1])
+
+    # First Column - Shows Description of EDA
+    with col4:
+        st.markdown("""
+        <h3 class="f2 f1-m f-headline-l measure-narrow lh-title mv0">
+         Know Your Data
+         </h3>
+         <p class="f5 f4-ns lh-copy measure mb4" style="text-align: justify;font-family: Sans Serif">
+          Before implementing your machine learning model, it is important at the initial stage to explore your data.
+          It is a good practice to understand the data first and try gather as many insights from it. EDA is all about
+          making sense of data in hand,before getting them dirty with it.
+         </p>
+            """,unsafe_allow_html = True)
+        global eda_button
+
+        # Customize Button
+        button = st.markdown("""
+        <style>
+        div.stButton > button{
+        background-color: #0178e4;
+        color:#ffffff;
+        box-shadow: #094c66 4px 4px 0px;
+        border-radius:8px 8px 8px 8px;
+        transition : transform 200ms,
+        box-shadow 200ms;
+        }
+
+         div.stButton > button:focus{
+        background-color: #0178e4;
+        color:#ffffff;
+        box-shadow: #094c66 4px 4px 0px;
+        border-radius:8px 8px 8px 8px;
+        transition : transform 200ms,
+        box-shadow 200ms;
+        }
+
+
+        div.stButton > button:active {
+
+                transform : translateY(4px) translateX(4px);
+                box-shadow : #0178e4 0px 0px 0px;
+
+            }
+        </style>""", unsafe_allow_html=True)
+        # Display Button
+        eda_button= st.button("Explore Your Data")
+
+
+    # Second Column - Display EDA Animation
+    with col5:
+        st_lottie(lottie_eda, key = "eda",height = 300, width = 800)
+
+    # User Clicks on Button, then profile report of the uplaoded or existing dataframe will be displayed
+    if eda_button:
+        profile(df1)
+
+
 
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
