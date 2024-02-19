@@ -200,8 +200,8 @@ fig.add_trace(fig3.data[0], row=2, col=1)
 fig.add_trace(fig4.data[0], row=2, col=2)
 
 # Update layout
-fig.update_layout(height=600, width=1000, showlegend=False)
-
+fig.update_layout(showlegend=False)
+#fig.update_layout(height=600, width=1000)
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
     theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
