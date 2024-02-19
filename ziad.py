@@ -26,7 +26,7 @@ st.set_page_config(
 menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
     {'label': 'California', 'icon': '🇺🇸'},
-    {'label': 'Vaccines', 'icon': '💉'},
+    {'label': 'Tableau'},
     {'label': 'Health Equity', 'icon': '⚖️'},
     {'label':"Overview", 'icon':'🔍'}]
 
@@ -48,6 +48,10 @@ df = df[df['NoofFloor'] >= 0]
 
 # Strip leading and trailing whitespaces from the "Type_of_St" column
 df['Type_of_St'] = df['Type_of_St'].str.strip()
+
+
+
+
 
 #edit footer
 page_style= """
