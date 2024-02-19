@@ -24,7 +24,7 @@ st.set_page_config(
 
 
 menu_data = [
-    {'label': "Counties", 'icon': 'bi bi-bar-chart-line'},
+    {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
     {'label': 'California', 'icon': '🇺🇸'},
     {'label': 'Vaccines', 'icon': '💉'},
     {'label': 'Health Equity', 'icon': '⚖️'},
