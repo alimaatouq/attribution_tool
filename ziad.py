@@ -9,7 +9,6 @@ import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-from pandas.io.json import json_normalize
 import hydralit_components as hc
 from streamlit_lottie import st_lottie
 import plotly.express as px
