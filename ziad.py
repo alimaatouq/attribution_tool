@@ -226,11 +226,11 @@ if menu_id == "Overview":
     with info[3]:
         hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
     co1, co2, co3 = st.columns([1, 3, 1])
-    with col1:
+    with co1:
         st.write("")
-    with col2:
+    with co2:
         st.write(fig)
-    with col3:
+    with co3:
         st.write("")
 
 
