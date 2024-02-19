@@ -54,7 +54,7 @@ menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
     {'label':"EDA", 'icon': "bi bi-graph-up-arrow"},
     {'label': 'Tableau', 'icon': 'bi bi-clipboard-data'},
-    {'label':"Applicatiion", 'icon':'fa fa-brain'}]
+    {'label':"Application", 'icon':'fa fa-brain'}]
 
 over_theme = {'txc_inactive': 'white','menu_background':'rgb(0,0,128)', 'option_active':'white'}
 
