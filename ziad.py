@@ -50,11 +50,15 @@ df['Type_of_St'] = df['Type_of_St'].str.strip()
 #count damage categories
 unique_categories = len(np.unique(df['FINAL_CLAS']))
 
+#count type of structure categories
+unique_categories_str = len(np.unique(df['Type_of_St']))
+
+
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
     theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
     theme_damage = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': "fas fa-house-damage"}
-    theme_charges = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-hand-holding-usd'}
+    theme_str = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-hand-holding-usd'}
     theme_tenure = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-business-time'}
 
     # Set 4 info cards
@@ -65,11 +69,11 @@ if menu_id == "Overview":
         hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
     # Second KPI - Number of damage categories
     with info[1]:
-        hc.info_card(title='Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
+        hc.info_card(title='# Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
 
-    # Third KPI - Total Charges
+    # Third KPI - Number of Type of structures
     with info[2]:
-        hc.info_card(title='Total Charges', content=numerize.numerize(df_filtered['TotalCharges'].sum(), 2)+'$', bar_value = (df_filtered['TotalCharges'].sum()/df['TotalCharges'].sum())*100,sentiment='good', theme_override = theme_charges)
+        hc.info_card(title='# of Types of Structures', content=unique_categories_str, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_str)
     # Fourth KPI - Average Tenure
     with info[3]:
         hc.info_card(title='Average Tenure', content=str(np.round(df_filtered['tenure'].mean(),2)) + ' Months', bar_value = (np.round(df_filtered['tenure'].mean(),2)/df['tenure'].max())*100,sentiment='good', theme_override = theme_tenure)
