@@ -25,10 +25,8 @@ st.set_page_config(
 
 menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
-    {'label': 'California', 'icon': '🇺🇸'},
-    {'label': 'Tableau'},
-    {'label': 'Health Equity', 'icon': '⚖️'},
-    {'label':"Overview", 'icon':'🔍'}]
+    {'label': 'Tableau', 'icon': 'bi bi-clipboard-data'},
+    {'label':"Applicatiion", 'icon':'fa fa-brain'}]
 
 over_theme = {'txc_inactive': 'white','menu_background':'rgb(0,0,128)', 'option_active':'white'}
 
