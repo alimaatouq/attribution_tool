@@ -98,71 +98,6 @@ def profile(df):
 
 # EDA page
 
-if menu_id == "Application":
-
-    bar_lengths = df['Type_of_St'].value_counts()
-
-    # Sort the bar lengths in descending order
-    bar_lengths = bar_lengths.sort_values(ascending=True)
-
-    # Define a custom color scale with darker blue for the longest bar and lighter blue for the others
-    max_length = bar_lengths.max()
-    colors = [f'rgba(64, 114, 255, {0.5 + 0.5 * (length / max_length)})' for length in bar_lengths]
-
-    # Create a horizontal bar chart with custom colors
-    fig1 = px.bar(x=bar_lengths.values, y=bar_lengths.index, orientation='h',
-              color=bar_lengths.values, color_continuous_scale=colors,
-              labels={'x':'Frequency', 'y':'Type of Structure'},
-              title='Frequency of Each Type of Structure')
-
-    fig1.update_layout(xaxis_showgrid=False, yaxis_showgrid=False, showlegend=False)
-    fig1.update_traces(text=bar_lengths.values, textposition='outside')
-    fig1.update_layout(xaxis_showticklabels=False, showlegend=False, xaxis_visible=False)
-
-    # Get the count of each category
-    count_data = df['FINAL_CLAS'].value_counts().reset_index()
-    count_data.columns = ['FINAL_CLAS', 'count']
-
-    # Find the index of the row with the highest count
-    max_count_index = count_data['count'].idxmax()
-
-    # Create a list of colors where the color for the highest count bar is different
-    colors = ['rgba(64, 114, 255, 0.5)' if i != max_count_index else 'rgba(255, 0, 0, 0.5)' for i in range(len(count_data))]
-
-    # Create a bar chart to visualize the distribution of final damage classifications
-    fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Final Damage Classifications',
-              category_orders={'FINAL_CLAS': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5']},
-              labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'},
-              color=count_data['FINAL_CLAS'], color_discrete_sequence=colors)
-
-    # Update layout to hide y-axis and place numbers outside of the bars
-    fig2.update_layout(showlegend=False)
-    fig2.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
-
-    # Create a histogram with Plotly
-    fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
-                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
-                    labels={'FINAL_CLAS': 'Final Classification'})
-    fig3.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
-
-    # Create a scatter plot of Shape_Leng vs. Shape_Area
-    fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
-    fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
-
-    # Use streamlit columns for layout
-    col1, col2 = st.columns(2)
-
-    # Display charts in columns
-    with col1:
-        st.plotly_chart(fig1, use_container_width=True)
-        st.plotly_chart(fig2, use_container_width=True)
-
-    with col2:
-        st.plotly_chart(fig3, use_container_width=True)
-        st.plotly_chart(fig4, use_container_width=True)
-
-
-
 if menu_id == "EDA":
 
     # Drop unnecessary columns
@@ -227,45 +162,69 @@ if menu_id == "EDA":
     if eda_button:
         profile(df1)
 
-# Calculate the length of each bar (frequency of each type of structure)
-bar_lengths = df['Type_of_St'].value_counts()
 
-# Sort the bar lengths in descending order
-bar_lengths = bar_lengths.sort_values(ascending=True)
+    bar_lengths = df['Type_of_St'].value_counts()
 
-# Create a horizontal bar chart with the Plotly Express default color palette
-fig1 = px.bar(x=bar_lengths.values, y=bar_lengths.index, orientation='h',
-             labels={'x':'Frequency', 'y':'Type of Structure'},
-             title='Frequency of Each Type of Structure')
+    # Sort the bar lengths in descending order
+    bar_lengths = bar_lengths.sort_values(ascending=True)
 
-# Get the count of each category for Chart 2
-count_data = df['FINAL_CLAS'].value_counts().reset_index()
-count_data.columns = ['FINAL_CLAS', 'count']
+    # Define a custom color scale with darker blue for the longest bar and lighter blue for the others
+    max_length = bar_lengths.max()
+    colors = [f'rgba(64, 114, 255, {0.5 + 0.5 * (length / max_length)})' for length in bar_lengths]
 
-# Create a bar chart to visualize the distribution of final damage classifications
-fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Final Damage Classifications',
-             category_orders={'FINAL_CLAS': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5']},
-             labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'})
+    # Create a horizontal bar chart with custom colors
+    fig1 = px.bar(x=bar_lengths.values, y=bar_lengths.index, orientation='h',
+              color=bar_lengths.values, color_continuous_scale=colors,
+              labels={'x':'Frequency', 'y':'Type of Structure'},
+              title='Frequency of Each Type of Structure')
 
-# Create a histogram with Plotly for Chart 3
-fig3 = px.histogram(df, x='DISTANCE_F', title='Distribution of Distance from Beirut Explosion',
-                   labels={'DISTANCE_F': 'Distance (meters)', 'count': 'Count'})
+    fig1.update_layout(xaxis_showgrid=False, yaxis_showgrid=False, showlegend=False)
+    fig1.update_traces(text=bar_lengths.values, textposition='outside')
+    fig1.update_layout(xaxis_showticklabels=False, showlegend=False, xaxis_visible=False)
 
-# Create a scatter plot of Shape_Leng vs. Shape_Area for Chart 4
-fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
+    # Get the count of each category
+    count_data = df['FINAL_CLAS'].value_counts().reset_index()
+    count_data.columns = ['FINAL_CLAS', 'count']
 
-# Create subplots
-fig = make_subplots(rows=2, cols=2, subplot_titles=("Frequency of Each Type of Structure", "Distribution of Final Damage Classifications", "Distribution of Distance from Beirut Explosion", "Correlation Between Building Area and Lenght"))
+    # Find the index of the row with the highest count
+    max_count_index = count_data['count'].idxmax()
 
-# Add traces to subplots
-fig.add_trace(fig1.data[0], row=1, col=1)
-fig.add_trace(fig2.data[0], row=1, col=2)
-fig.add_trace(fig3.data[0], row=2, col=1)
-fig.add_trace(fig4.data[0], row=2, col=2)
+    # Create a list of colors where the color for the highest count bar is different
+    colors = ['rgba(64, 114, 255, 0.5)' if i != max_count_index else 'rgba(255, 0, 0, 0.5)' for i in range(len(count_data))]
 
-# Update layout
-fig.update_layout(showlegend=False)
-fig.update_layout(height=600, width=1000)
+    # Create a bar chart to visualize the distribution of final damage classifications
+    fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Final Damage Classifications',
+              category_orders={'FINAL_CLAS': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5']},
+              labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'},
+              color=count_data['FINAL_CLAS'], color_discrete_sequence=colors)
+
+    # Update layout to hide y-axis and place numbers outside of the bars
+    fig2.update_layout(showlegend=False)
+    fig2.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Create a histogram with Plotly
+    fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
+                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
+                    labels={'FINAL_CLAS': 'Final Classification'})
+    fig3.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Create a scatter plot of Shape_Leng vs. Shape_Area
+    fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
+    fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Use streamlit columns for layout
+    col1, col2 = st.columns(2)
+
+    # Display charts in columns
+    with col1:
+        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True)
+
+    with col2:
+        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig4, use_container_width=True)
+
+
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
     theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
