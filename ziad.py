@@ -51,7 +51,7 @@ df['Type_of_St'] = df['Type_of_St'].str.strip()
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
     theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
-    theme_churn = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-running'}
+    theme_damage = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': "fa fa-house-chimney-crack"}
     theme_charges = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-hand-holding-usd'}
     theme_tenure = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-business-time'}
 
@@ -61,9 +61,9 @@ if menu_id == "Overview":
     # First KPI - Number of Buildings
     with info[0]:
         hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
-    # Second KPI - Number of Churened Customers
+    # Second KPI - Number of damage categories
     with info[1]:
-        hc.info_card(title='Churns', content=df_filtered[df_filtered['Churn']=='Yes'].shape[0], bar_value = (df_filtered[df_filtered['Churn']=='Yes'].shape[0]/df[df['Churn']=='Yes'].shape[0])*100,sentiment='good', theme_override = theme_churn)
+        hc.info_card(title='Damage Categories', content= 6, bar_value = 6,sentiment='good', theme_override = theme_damage)
 
     # Third KPI - Total Charges
     with info[2]:
