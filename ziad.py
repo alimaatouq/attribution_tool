@@ -98,6 +98,71 @@ def profile(df):
 
 # EDA page
 
+if menu_id == "Application":
+
+    bar_lengths = df['Type_of_St'].value_counts()
+
+    # Sort the bar lengths in descending order
+    bar_lengths = bar_lengths.sort_values(ascending=True)
+
+    # Define a custom color scale with darker blue for the longest bar and lighter blue for the others
+    max_length = bar_lengths.max()
+    colors = [f'rgba(64, 114, 255, {0.5 + 0.5 * (length / max_length)})' for length in bar_lengths]
+
+    # Create a horizontal bar chart with custom colors
+    fig1 = px.bar(x=bar_lengths.values, y=bar_lengths.index, orientation='h',
+              color=bar_lengths.values, color_continuous_scale=colors,
+              labels={'x':'Frequency', 'y':'Type of Structure'},
+              title='Frequency of Each Type of Structure')
+
+    fig1.update_layout(xaxis_showgrid=False, yaxis_showgrid=False, showlegend=False)
+    fig1.update_traces(text=bar_lengths.values, textposition='outside')
+    fig1.update_layout(xaxis_showticklabels=False, showlegend=False, xaxis_visible=False)
+
+    # Get the count of each category
+    count_data = df['FINAL_CLAS'].value_counts().reset_index()
+    count_data.columns = ['FINAL_CLAS', 'count']
+
+    # Find the index of the row with the highest count
+    max_count_index = count_data['count'].idxmax()
+
+    # Create a list of colors where the color for the highest count bar is different
+    colors = ['rgba(64, 114, 255, 0.5)' if i != max_count_index else 'rgba(255, 0, 0, 0.5)' for i in range(len(count_data))]
+
+    # Create a bar chart to visualize the distribution of final damage classifications
+    fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Final Damage Classifications',
+              category_orders={'FINAL_CLAS': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5']},
+              labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'},
+              color=count_data['FINAL_CLAS'], color_discrete_sequence=colors)
+
+    # Update layout to hide y-axis and place numbers outside of the bars
+    fig2.update_layout(showlegend=False)
+    fig2.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Create a histogram with Plotly
+    fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
+                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
+                    labels={'FINAL_CLAS': 'Final Classification'})
+    fig3.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Create a scatter plot of Shape_Leng vs. Shape_Area
+    fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
+    fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
+
+    # Use streamlit columns for layout
+    col1, col2 = st.beta_columns(2)
+
+    # Display charts in columns
+    with col1:
+        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True)
+
+    with col2:
+        st.plotly_chart(fig3, use_container_width=True)
+        st.plotly_chart(fig4, use_container_width=True)
+
+
+
 if menu_id == "EDA":
 
     # Drop unnecessary columns
