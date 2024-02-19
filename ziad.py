@@ -63,7 +63,7 @@ if menu_id == "Overview":
         hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
     # Second KPI - Number of damage categories
     with info[1]:
-        hc.info_card(title='Damage Categories', content= 6, bar_value = 6,sentiment='good', theme_override = theme_damage)
+        hc.info_card(title='Damage Categories', content= 6, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
 
     # Third KPI - Total Charges
     with info[2]:
