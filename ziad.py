@@ -45,6 +45,11 @@ def load_lottieurl(url):
 
 lottie_eda = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_ic37y4kv.json")
 
+# Load css library
+remote_css("https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css")
+# Load css style
+local_css('style.css')
+
 menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
     {'label':"EDA", 'icon': "bi bi-graph-up-arrow"},
