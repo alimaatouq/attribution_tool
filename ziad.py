@@ -150,7 +150,7 @@ if menu_id == "Application":
     fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
 
     # Use streamlit columns for layout
-    col1, col2 = st.beta_columns(2)
+    col1, col2 = st.columns(2)
 
     # Display charts in columns
     with col1:
