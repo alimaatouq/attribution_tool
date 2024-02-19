@@ -34,6 +34,7 @@ def remote_css(url):
 
 menu_data = [
     {'label': "Overview", 'icon': 'bi bi-bar-chart-line'},
+    {'label':"EDA", 'icon': "bi bi-graph-up-arrow"},
     {'label': 'Tableau', 'icon': 'bi bi-clipboard-data'},
     {'label':"Applicatiion", 'icon':'fa fa-brain'}]
 
