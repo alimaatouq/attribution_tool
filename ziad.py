@@ -200,7 +200,7 @@ fig.add_trace(fig3.data[0], row=2, col=1)
 fig.add_trace(fig4.data[0], row=2, col=2)
 
 # Update layout
-fig.update_layout(height=600, width=1000, showlegend=False)
+#fig.update_layout(height=600, width=1000, showlegend=False)
 
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
