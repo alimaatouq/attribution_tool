@@ -18,7 +18,7 @@ from plotly.subplots import make_subplots
 
 st.set_page_config(
     page_title="Beirut Port Explosion",
-    page_icon= "https://www.google.com/url?sa=i&url=https%3A%2F%2Fpngtree.com%2Ffree-explosion-png&psig=AOvVaw0A844WigKKvMqEzGhYeXHF&ust=1708430188544000&source=images&cd=vfe&opi=89978449&ved=0CBMQjRxqFwoTCMi6pcast4QDFQAAAAAdAAAAABAS",
+    page_icon= "https://cdn-icons-png.flaticon.com/512/2824/2824717.png",
     layout='wide'
 )
 
