@@ -225,10 +225,13 @@ if menu_id == "Overview":
     # Fourth KPI - Average Tenure
     with info[3]:
         hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
-    st.write(fig)
-    # Center the figure or content
-    st.write('<div style="display: flex; justify-content: center;">', unsafe_allow_html=True)
-    st.write('</div>', unsafe_allow_html=True)
+    co1, co2, co3 = st.columns([1, 3, 1])
+    with col1:
+        st.write("")
+    with col2:
+        st.write(fig)
+    with col3:
+        st.write("")
 
 
 
