@@ -89,8 +89,7 @@ def profile(df):
     tbl = st_profile_report(pr)
     return  tbl
 
-# Save the data in memory
-df = st.session_state['table']
+
 
 # EDA page
 
