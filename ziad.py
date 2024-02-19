@@ -47,6 +47,8 @@ df = df[df['NoofFloor'] >= 0]
 # Strip leading and trailing whitespaces from the "Type_of_St" column
 df['Type_of_St'] = df['Type_of_St'].str.strip()
 
+#count damage categories
+unique_categories = len(np.unique(df['FINAL_CLAS']))
 
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
@@ -63,7 +65,7 @@ if menu_id == "Overview":
         hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
     # Second KPI - Number of damage categories
     with info[1]:
-        hc.info_card(title='Damage Categories', content= 6, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
+        hc.info_card(title='Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
 
     # Third KPI - Total Charges
     with info[2]:
