@@ -228,7 +228,6 @@ if menu_id == "Overview":
     st.write(fig)
     # Center the figure or content
     st.write('<div style="display: flex; justify-content: center;">', unsafe_allow_html=True)
-    st.write("This is your centered figure or content")
     st.write('</div>', unsafe_allow_html=True)
 
 
