@@ -183,7 +183,7 @@ fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Fina
              labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'})
 
 # Create a histogram with Plotly for Chart 3
-fig = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
+fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
                    labels={'FINAL_CLAS': 'Final Classification'})
 
