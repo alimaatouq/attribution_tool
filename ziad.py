@@ -228,12 +228,12 @@ if menu_id == "Overview":
 
     # Create a histogram with Plotly
     fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
-                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
+                    title='Histogram of Final Damage Classification with Direct Line of Sight',
                     labels={'FINAL_CLAS': 'Final Classification'})
     fig3.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
 
     # Create a scatter plot of Shape_Leng vs. Shape_Area
-    fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
+    fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Building Lenght vs. Building Area')
     fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
 
     # Use streamlit columns for layout
