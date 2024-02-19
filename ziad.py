@@ -75,14 +75,14 @@ if menu_id == "Overview":
         hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
     # Second KPI - Number of damage categories
     with info[1]:
-        hc.info_card(title='# Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
+        hc.info_card(title='Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
 
     # Third KPI - Number of Type of structures
     with info[2]:
         hc.info_card(title='# of Types of Structures', content=unique_categories_str, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_str)
     # Fourth KPI - Average Tenure
     with info[3]:
-        hc.info_card(title='Average Number of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
+        hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
 
 
 
