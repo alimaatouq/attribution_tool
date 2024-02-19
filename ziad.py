@@ -183,7 +183,7 @@ fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Fina
              labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'})
 
 # Create a histogram with Plotly for Chart 3
-fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
+fig = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
                    title='Histogram of FINAL_CLAS with DIRECT_LIN',
                    labels={'FINAL_CLAS': 'Final Classification'})
 
@@ -191,7 +191,7 @@ fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
 fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
 
 # Create subplots
-fig = make_subplots(rows=2, cols=2, subplot_titles=("Chart 1", "Chart 2", "Chart 3", "Chart 4"))
+fig = make_subplots(rows=2, cols=2, subplot_titles=("Frequency of Each Type of Structure", "Distribution of Final Damage Classifications", "Damage Classification VS Direct Line of Sight", "Correlation Between Building Area and Lenght"))
 
 # Add traces to subplots
 fig.add_trace(fig1.data[0], row=1, col=1)
