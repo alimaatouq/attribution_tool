@@ -49,4 +49,19 @@ df = df[df['NoofFloor'] >= 0]
 # Strip leading and trailing whitespaces from the "Type_of_St" column
 df['Type_of_St'] = df['Type_of_St'].str.strip()
 
+#edit footer
+page_style= """
+    <style>
+    footer{
+        visibility: visible;
+        }
+    footer:after{
+        content: 'Developed by Ziad Moghabghab - MSBA @ OSB - AUB';
+        display:block;
+        position:relative;
+        color:#1e54e4;
+    }
+    </style>"""
+
+st.markdown(page_style, unsafe_allow_html=True)
 
