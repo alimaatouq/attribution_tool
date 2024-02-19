@@ -40,5 +40,13 @@ menu_id = hc.nav_bar(
     sticky_mode='sticky', #jumpy or not-jumpy, but sticky or pinned
 )
 
+# Read the CSV file into a DataFrame
+df = pd.read_csv('Cleaned_Data.csv')
+
+# Filter out rows with negative number of floors
+df = df[df['NoofFloor'] >= 0]
+
+# Strip leading and trailing whitespaces from the "Type_of_St" column
+df['Type_of_St'] = df['Type_of_St'].str.strip()
 
 
