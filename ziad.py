@@ -162,7 +162,45 @@ if menu_id == "EDA":
     if eda_button:
         profile(df1)
 
+# Calculate the length of each bar (frequency of each type of structure)
+bar_lengths = df['Type_of_St'].value_counts()
 
+# Sort the bar lengths in descending order
+bar_lengths = bar_lengths.sort_values(ascending=True)
+
+# Create a horizontal bar chart with the Plotly Express default color palette
+fig1 = px.bar(x=bar_lengths.values, y=bar_lengths.index, orientation='h',
+             labels={'x':'Frequency', 'y':'Type of Structure'},
+             title='Frequency of Each Type of Structure')
+
+# Get the count of each category for Chart 2
+count_data = df['FINAL_CLAS'].value_counts().reset_index()
+count_data.columns = ['FINAL_CLAS', 'count']
+
+# Create a bar chart to visualize the distribution of final damage classifications
+fig2 = px.bar(count_data, x='FINAL_CLAS', y='count', title='Distribution of Final Damage Classifications',
+             category_orders={'FINAL_CLAS': ['D0', 'D1', 'D2', 'D3', 'D4', 'D5']},
+             labels={'FINAL_CLAS': 'Final Classification', 'count': 'Count'})
+
+# Create a histogram with Plotly for Chart 3
+fig3 = px.histogram(df, x='FINAL_CLAS', color='DIRECT_LIN', barmode='group',
+                   title='Histogram of FINAL_CLAS with DIRECT_LIN',
+                   labels={'FINAL_CLAS': 'Final Classification'})
+
+# Create a scatter plot of Shape_Leng vs. Shape_Area for Chart 4
+fig4 = px.scatter(df, x='Shape_Leng', y='Shape_Area', title='Scatter Plot of Shape_Leng vs. Shape_Area')
+
+# Create subplots
+fig = make_subplots(rows=2, cols=2, subplot_titles=("Chart 1", "Chart 2", "Chart 3", "Chart 4"))
+
+# Add traces to subplots
+fig.add_trace(fig1.data[0], row=1, col=1)
+fig.add_trace(fig2.data[0], row=1, col=2)
+fig.add_trace(fig3.data[0], row=2, col=1)
+fig.add_trace(fig4.data[0], row=2, col=2)
+
+# Update layout
+fig.update_layout(height=600, width=1000, showlegend=False)
 
 if menu_id == "Overview":
     #can apply customisation to almost all the properties of the card, including the progress bar
@@ -187,6 +225,7 @@ if menu_id == "Overview":
     # Fourth KPI - Average Tenure
     with info[3]:
         hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
+    st.write(fig)
 
 
 
