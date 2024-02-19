@@ -163,6 +163,30 @@ if menu_id == "EDA":
         profile(df1)
 
 
+if menu_id == "Overview":
+    #can apply customisation to almost all the properties of the card, including the progress bar
+    theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
+    theme_damage = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': "fas fa-house-damage"}
+    theme_str = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fas fa-gopuram'}
+    theme_floors = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fas fa-pencil-ruler'}
+
+    # Set 4 info cards
+    info = st.columns(4)
+
+    # First KPI - Number of Buildings
+    with info[0]:
+        hc.info_card(title='Number of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
+    # Second KPI - Number of damage categories
+    with info[1]:
+        hc.info_card(title='Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
+
+    # Third KPI - Number of Type of structures
+    with info[2]:
+        hc.info_card(title='# of Types of Structures', content=unique_categories_str, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_str)
+    # Fourth KPI - Average Tenure
+    with info[3]:
+        hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
+
     bar_lengths = df['Type_of_St'].value_counts()
 
     # Sort the bar lengths in descending order
@@ -213,50 +237,16 @@ if menu_id == "EDA":
     fig4.update_layout(xaxis_showgrid=False, yaxis_showgrid=False)
 
     # Use streamlit columns for layout
-    col1, col2 = st.columns(2)
+    co1, co2 = st.columns(2)
 
     # Display charts in columns
-    with col1:
+    with co1:
         st.plotly_chart(fig1, use_container_width=True)
         st.plotly_chart(fig2, use_container_width=True)
 
-    with col2:
+    with co2:
         st.plotly_chart(fig3, use_container_width=True)
         st.plotly_chart(fig4, use_container_width=True)
-
-
-if menu_id == "Overview":
-    #can apply customisation to almost all the properties of the card, including the progress bar
-    theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-building'}
-    theme_damage = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': "fas fa-house-damage"}
-    theme_str = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fas fa-gopuram'}
-    theme_floors = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fas fa-pencil-ruler'}
-
-    # Set 4 info cards
-    info = st.columns(4)
-
-    # First KPI - Number of Buildings
-    with info[0]:
-        hc.info_card(title='Number of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
-    # Second KPI - Number of damage categories
-    with info[1]:
-        hc.info_card(title='Damage Categories', content= unique_categories, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_damage)
-
-    # Third KPI - Number of Type of structures
-    with info[2]:
-        hc.info_card(title='# of Types of Structures', content=unique_categories_str, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_str)
-    # Fourth KPI - Average Tenure
-    with info[3]:
-        hc.info_card(title='Average # of Floors', content= rounded_average_floors, bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_floors)
-    co1, co2, co3 = st.columns([1, 3, 1])
-    with co1:
-        st.write("")
-    with co2:
-        st.write(fig)
-    with co3:
-        st.write("")
-
-
 
 if menu_id == "Tableau":
     colll1,colll2,colll3, colll4, colll5 = st.columns(5)
