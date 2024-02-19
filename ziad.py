@@ -48,6 +48,32 @@ df = df[df['NoofFloor'] >= 0]
 df['Type_of_St'] = df['Type_of_St'].str.strip()
 
 
+if menu_id == "Overview":
+    #can apply customisation to almost all the properties of the card, including the progress bar
+    theme_buildings= {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-user-friends'}
+    theme_churn = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-running'}
+    theme_charges = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-hand-holding-usd'}
+    theme_tenure = {'bgcolor': '#f6f6f6','title_color': '#2A4657','content_color': '#0178e4','progress_color': '#0178e4','icon_color': '#0178e4', 'icon': 'fa fa-business-time'}
+
+    # Set 4 info cards
+    info = st.columns(4)
+
+    # First KPI - Number of Buildings
+    with info[0]:
+        hc.info_card(title='# of Buildings', content=df.shape[0], bar_value = (df.shape[0]/df.shape[0])*100,sentiment='good', theme_override = theme_buildings)
+    # Second KPI - Number of Churened Customers
+    with info[1]:
+        hc.info_card(title='Churns', content=df_filtered[df_filtered['Churn']=='Yes'].shape[0], bar_value = (df_filtered[df_filtered['Churn']=='Yes'].shape[0]/df[df['Churn']=='Yes'].shape[0])*100,sentiment='good', theme_override = theme_churn)
+
+    # Third KPI - Total Charges
+    with info[2]:
+        hc.info_card(title='Total Charges', content=numerize.numerize(df_filtered['TotalCharges'].sum(), 2)+'$', bar_value = (df_filtered['TotalCharges'].sum()/df['TotalCharges'].sum())*100,sentiment='good', theme_override = theme_charges)
+    # Fourth KPI - Average Tenure
+    with info[3]:
+        hc.info_card(title='Average Tenure', content=str(np.round(df_filtered['tenure'].mean(),2)) + ' Months', bar_value = (np.round(df_filtered['tenure'].mean(),2)/df['tenure'].max())*100,sentiment='good', theme_override = theme_tenure)
+
+
+
 if menu_id == "Tableau":
     colll1,colll2,colll3, colll4, colll5 = st.columns(5)
     coll1, coll2, coll3 = st.columns([1,10,1])
