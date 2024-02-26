@@ -79,7 +79,7 @@ df = df[df['NoofFloor'] >= 0]
 
 # Strip leading and trailing whitespaces from the "Type_of_St" column
 df['Type_of_St'] = df['Type_of_St'].str.strip()
-
+df['FINAL_CONS'] = df['FINAL_CONS'].str.strip()
 #count damage categories
 unique_categories = len(np.unique(df['FINAL_CLAS']))
 
