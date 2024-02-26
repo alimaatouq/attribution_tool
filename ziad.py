@@ -306,8 +306,8 @@ if menu_id == "Application":
     label_encoders = {}
     categorical_columns = ['Type_of_St','FINAL_CONS']
     for col in categorical_columns:
-    label_encoders[col] = LabelEncoder()
-    X[col] = label_encoders[col].fit_transform(X[col])
+        label_encoders[col] = LabelEncoder()
+        X[col] = label_encoders[col].fit_transform(X[col])
 
     # Split the data into training and testing sets (e.g., 80% training, 20% testing)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
