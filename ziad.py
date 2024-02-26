@@ -106,7 +106,7 @@ def profile(df):
 if menu_id == "EDA":
 
     # Drop unnecessary columns
-    df1 = df.drop(['FID','ParcelID','PID','F__id','Source','ObjectID', 'FINAL_CONS'],axis=1)
+    df1 = df.drop(['FID','ParcelID','PID','F__id','Source','ObjectID'],axis=1)
     
 
     # 2 Column Layouts of Same Size
