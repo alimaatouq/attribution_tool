@@ -317,6 +317,26 @@ if menu_id == "Application":
     classifier.fit(X_train, y_train)
 
 
+    # Building information input
+    st.title('Customer Account Information')
+    cols2 = st.columns(4)
+
+    with cols2[0]:
+        tenure_months = st.number_input("Tenure",value = 12.00, min_value = 0.0)
+
+
+    with cols2[1]:
+        contracts = st.selectbox("Contract Term",("Month-to-month","One year","Two year"))
+
+    with cols2[2]:
+        paper = st.selectbox("Paperless Billing",("Yes","No"))
+
+    with cols2[3]:
+        payment_method = st.selectbox("Payment Method",("Electric check","Mailed Checked","Bank Transfer","Credit Card"))
+
+
+    with cols2[4]:
+        total_charges = st.number_input("Total Charges", value = 100.00, min_value =0.00)
 
 
 #edit footer
