@@ -340,10 +340,10 @@ if menu_id == "Application":
         shape_area = st.number_input("Shape Area",value = 35, min_value = 0)
 
     with cols3[0]:
-        shape_length = st.number_input("Shape lenght",value = 35, min_value = 0)
+        shape_length = st.number_input("Shape Lenght",value = 35, min_value = 0)
         
     with cols3[2]:
-        internet_service = st.selectbox("Internet Service",("DSL","Fiber optic","No"))
+        ditrct_line = st.selectbox("Direct Line of Sight to Port Explosion",(0,1))
 
 
 
