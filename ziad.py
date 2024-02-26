@@ -332,7 +332,18 @@ if menu_id == "Application":
         distance_from = st.number_input("Distance from Beirut Explosion",value = 100, min_value = 0)
 
     with cols2[3]:
-        payment_method = st.selectbox("Payment Method",("Electric check","Mailed Checked","Bank Transfer","Credit Card"))
+        shape_length = st.number_input("Shape lenght",value = 35, min_value = 0)
+
+    cols3 = st.columns(3)
+
+    with cols3[0]:
+        phone_service = st.selectbox("Phone Services",("Yes","No"))
+
+    with cols3[1]:
+        multiple_lines = st.selectbox("Multiple Lines",("Yes","No","No phone service"))
+
+    with cols3[2]:
+        internet_service = st.selectbox("Internet Service",("DSL","Fiber optic","No"))
 
 
 
