@@ -322,7 +322,7 @@ if menu_id == "Application":
     cols2 = st.columns(4)
 
     with cols2[0]:
-        tenure_months = st.number_input("Tenure",value = 12.00, min_value = 0.0)
+        tenure_months = st.number_input("Tenure",value = 5, min_value = 0)
 
 
     with cols2[1]:
