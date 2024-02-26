@@ -266,6 +266,9 @@ if menu_id == "Tableau":
         if __name__ == "__main__":
             main()
 
+# Predication Application Page
+
+if menu_id == "Application":
 
 
 #edit footer
