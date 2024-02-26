@@ -358,6 +358,7 @@ if menu_id == "Application":
         report_data =pd.DataFrame(user_report_data, index = [0])
         return report_data
     
+    user_data = user_report()
 
 
 
