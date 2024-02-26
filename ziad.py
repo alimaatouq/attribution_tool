@@ -318,7 +318,7 @@ if menu_id == "Application":
 
 
     # Building information input
-    st.title('Customer Account Information')
+    st.title('Building Information Input')
     cols2 = st.columns(4)
 
     with cols2[0]:
@@ -329,7 +329,7 @@ if menu_id == "Application":
         type_structure = st.selectbox("Type of Structure",("RC","SM","Steel","RC+SM (EVOLVED)", "RC+Steel"))
 
     with cols2[2]:
-        paper = st.selectbox("Paperless Billing",("Yes","No"))
+        distance_from = st.number_input("Distance from Beirut Explosion",value = 100, min_value = 0)
 
     with cols2[3]:
         payment_method = st.selectbox("Payment Method",("Electric check","Mailed Checked","Bank Transfer","Credit Card"))
