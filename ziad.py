@@ -359,7 +359,8 @@ if menu_id == "Application":
         return report_data
     
     user_data = user_report()
-
+    st.header('Data Input by User')
+    st.table(user_data)
 
 
 #edit footer
