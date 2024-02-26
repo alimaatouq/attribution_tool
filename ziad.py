@@ -319,7 +319,7 @@ if menu_id == "Application":
 
     # Building information input
     st.title('Customer Account Information')
-    cols2 = st.columns(4)
+    cols2 = st.columns(5)
 
     with cols2[0]:
         tenure_months = st.number_input("Tenure",value = 12.00, min_value = 0.0)
