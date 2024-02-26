@@ -332,16 +332,16 @@ if menu_id == "Application":
         distance_from = st.number_input("Distance from Beirut Explosion",value = 100, min_value = 0)
 
     with cols2[3]:
-        shape_length = st.number_input("Shape lenght",value = 35, min_value = 0)
+        finl_con = st.selectbox("Final Year of Construction", ("Pre1935", "1935-1955", "1956-1971", "1972-1990", "Post1990"))
 
     cols3 = st.columns(3)
 
-    with cols3[0]:
+    with cols3[1]:
         shape_area = st.number_input("Shape Area",value = 35, min_value = 0)
 
-    with cols3[1]:
-        multiple_lines = st.selectbox("Multiple Lines",("Yes","No","No phone service"))
-
+    with cols3[0]:
+        shape_length = st.number_input("Shape lenght",value = 35, min_value = 0)
+        
     with cols3[2]:
         internet_service = st.selectbox("Internet Service",("DSL","Fiber optic","No"))
 
