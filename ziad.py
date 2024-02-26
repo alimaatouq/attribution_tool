@@ -322,11 +322,11 @@ if menu_id == "Application":
     cols2 = st.columns(4)
 
     with cols2[0]:
-        tenure_months = st.number_input("Tenure",value = 5, min_value = 0)
+        num_floor = st.number_input("Number of Floors",value = 5, min_value = 0)
 
 
     with cols2[1]:
-        contracts = st.selectbox("Contract Term",("Month-to-month","One year","Two year"))
+        type_structure = st.selectbox("Type of Structure",("RC","SM","Steel","RC+SM (EVOLVED)", "RC+Steel"))
 
     with cols2[2]:
         paper = st.selectbox("Paperless Billing",("Yes","No"))
