@@ -360,19 +360,54 @@ if menu_id == "Application":
         return report_data
     
     user_data = user_report()
-    st.header('Data Input by User')
-    st.table(user_data)
-    categorical_columns_user = ['Type_of_St','FINAL_CONS']
-    for col in categorical_columns_user:
-        label_encoders[col] = LabelEncoder()
-        user_data[col] = label_encoders[col].fit_transform(user_data[col])
-    # Predict the result
-    prediction = classifier.predict(user_data)
-    st.subheader('The Building is more likely to: ')
-    if prediction == "D0":
-        st.subheader("not to be impacted or damaged")
-    else:
-        st.subheader("to be impacted or damaged")
+    st.write("")
+    st.write("")
+    st.write("")
+    #Button style
+    button = st.markdown("""
+        <style>
+        div.stButton > button{
+        background-color: #0178e4;
+        color:#ffffff;
+        box-shadow: #094c66 4px 4px 0px;
+        border-radius:8px 8px 8px 8px;
+        transition : transform 200ms,
+        box-shadow 200ms;
+        }
+
+         div.stButton > button:focus{
+        background-color: #0178e4;
+        color:#ffffff;
+        box-shadow: #094c66 4px 4px 0px;
+        border-radius:8px 8px 8px 8px;
+        transition : transform 200ms,
+        box-shadow 200ms;
+        }
+
+
+        div.stButton > button:active {
+
+                transform : translateY(4px) translateX(4px);
+                box-shadow : #0178e4 0px 0px 0px;
+
+            }
+        </style>""", unsafe_allow_html=True)
+    predict = st.button('Predict')
+    # Show the Outcome of the Model
+    if predict:
+        st.header('Data Input by User')
+        st.table(user_data)
+        categorical_columns_user = ['Type_of_St','FINAL_CONS']
+        for col in categorical_columns_user:
+            label_encoders[col] = LabelEncoder()
+            user_data[col] = label_encoders[col].fit_transform(user_data[col])
+        # Predict the result
+        prediction = classifier.predict(user_data)
+        st.subheader('The Building is more likely to: ')
+        if prediction == "D0":
+            st.subheader("not to be impacted or damaged")
+        else:
+            st.subheader("to be impacted or damaged")
 
 
 #edit footer
