@@ -362,6 +362,14 @@ if menu_id == "Application":
     st.header('Data Input by User')
     st.table(user_data)
 
+    # Predict the result
+    prediction = classifier.predict(user_data)
+    st.subheader('The Building is more likely to: ')
+    if prediction == "D0":
+        st.subheader("not to be impacted or damaged")
+    else:
+        st.subheader("to be impacted or damaged")
+
 
 #edit footer
 page_style= """
