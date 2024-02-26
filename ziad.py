@@ -337,7 +337,7 @@ if menu_id == "Application":
     cols3 = st.columns(3)
 
     with cols3[0]:
-        phone_service = st.selectbox("Phone Services",("Yes","No"))
+        shape_area = st.number_input("Shape Area",value = 35, min_value = 0)
 
     with cols3[1]:
         multiple_lines = st.selectbox("Multiple Lines",("Yes","No","No phone service"))
