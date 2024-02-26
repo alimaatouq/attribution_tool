@@ -295,8 +295,8 @@ if menu_id == "Application":
     # Create a list of columns to keep
     columns_to_keep = ["FINAL_CLAS", "NoofFloor", "Type_of_St", "DISTANCE_F", "FINAL_CONS", "Shape_Leng", "Shape_Area", "DIRECT_LIN"]
     # differentiate only between not impacted and impacted regardless of the degree of destruction
-    df['FINAL_CLAS'].replace(['D1', 'D2', 'D3', 'D4', 'D5'], 1, inplace=True)
-    df['FINAL_CLAS'].replace(['D0'], 0, inplace=True)
+    df['FINAL_CLAS'].replace(['D2', 'D3', 'D4', 'D5'], "D1", inplace=True)
+    #df['FINAL_CLAS'].replace(['D0'], 0, inplace=True)
     # Keep only the specified columns
     df = df[columns_to_keep]
     # Split the data into features (X) and the target variable (y)
@@ -362,11 +362,14 @@ if menu_id == "Application":
     user_data = user_report()
     st.header('Data Input by User')
     st.table(user_data)
-
+    categorical_columns_user = ['Type_of_St','FINAL_CONS']
+    for col in categorical_columns_user:
+        label_encoders[col] = LabelEncoder()
+        user_data[col] = label_encoders[col].fit_transform(user_data[col])
     # Predict the result
     prediction = classifier.predict(user_data)
     st.subheader('The Building is more likely to: ')
-    if prediction == 0:
+    if prediction == "D0":
         st.subheader("not to be impacted or damaged")
     else:
         st.subheader("to be impacted or damaged")
