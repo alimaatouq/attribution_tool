@@ -281,11 +281,11 @@ if menu_id == "Application":
     with col[0]:
         st.markdown("""
         <h3 class="f2 f1-m f-headline-l measure-narrow lh-title mv0">
-        Know The Risks
+        Know The Risk of Damage
          </h3>
          <p class="f5 f4-ns lh-copy measure mb4" style="text-align: justify;font-family: Sans Serif">
-         Now, it's time to detect whether any existing or upcoming customer has a risk to churn.
-         Fill out the customers' demographic, account, and services information to see the result.
+         Now, it's time to Predict whether any existing or upcoming Building has a risk to be damaged.
+         Fill out the building's features and information to see the result.
          </p>
             """,unsafe_allow_html = True)
 
