@@ -295,7 +295,8 @@ if menu_id == "Application":
     # Create a list of columns to keep
     columns_to_keep = ["FINAL_CLAS", "NoofFloor", "Type_of_St", "DISTANCE_F", "FINAL_CONS", "Shape_Leng", "Shape_Area", "DIRECT_LIN"]
     # differentiate only between not impacted and impacted regardless of the degree of destruction
-    df['FINAL_CLAS'].replace(['D2', 'D3', 'D4', 'D5'], 'D1', inplace=True)
+    df['FINAL_CLAS'].replace(['D1', 'D2', 'D3', 'D4', 'D5'], '1', inplace=True)
+    df['FINAL_CLAS'].replace(['D0'], '0', inplace=True)
     # Keep only the specified columns
     df = df[columns_to_keep]
     # Split the data into features (X) and the target variable (y)
