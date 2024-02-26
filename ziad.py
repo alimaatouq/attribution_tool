@@ -316,35 +316,48 @@ if menu_id == "Application":
     classifier = RandomForestClassifier(random_state=42)
     classifier.fit(X_train, y_train)
 
+    def user_report():
 
-    # Building information input
-    st.title('Building Information Input')
-    cols2 = st.columns(4)
+        # Building information input
+        st.title('Building Information Input')
+        cols2 = st.columns(4)
 
-    with cols2[0]:
-        num_floor = st.number_input("Number of Floors",value = 5, min_value = 0)
+        with cols2[0]:
+            num_floor = st.number_input("Number of Floors",value = 5, min_value = 0)
 
 
-    with cols2[1]:
-        type_structure = st.selectbox("Type of Structure",("RC","SM","Steel","RC+SM (EVOLVED)", "RC+Steel"))
+        with cols2[1]:
+            type_structure = st.selectbox("Type of Structure",("RC","SM","Steel","RC+SM (EVOLVED)", "RC+Steel"))
 
-    with cols2[2]:
-        distance_from = st.number_input("Distance from Beirut Explosion",value = 100, min_value = 0)
+        with cols2[2]:
+            distance_from = st.number_input("Distance from Beirut Explosion",value = 100, min_value = 0)
 
-    with cols2[3]:
-        finl_con = st.selectbox("Final Year of Construction", ("Pre1935", "1935-1955", "1956-1971", "1972-1990", "Post1990"))
+        with cols2[3]:
+            finl_con = st.selectbox("Final Year of Construction", ("Pre1935", "1935-1955", "1956-1971", "1972-1990", "Post1990"))
 
-    cols3 = st.columns(3)
+        cols3 = st.columns(3)
 
-    with cols3[1]:
-        shape_area = st.number_input("Shape Area",value = 35, min_value = 0)
+        with cols3[1]:
+            shape_area = st.number_input("Shape Area",value = 35, min_value = 0)
 
-    with cols3[0]:
-        shape_length = st.number_input("Shape Lenght",value = 35, min_value = 0)
+        with cols3[0]:
+            shape_length = st.number_input("Shape Lenght",value = 35, min_value = 0)
         
-    with cols3[2]:
-        ditrct_line = st.selectbox("Direct Line of Sight to Port Explosion",(0,1))
-
+        with cols3[2]:
+            ditrct_line = st.selectbox("Direct Line of Sight to Port Explosion",(0,1))
+        
+        user_report_data = {
+        'NoofFloor': num_floor,
+        'Type_of_St': type_structure,
+        'DISTANCE_F': distance_from,
+        'FINAL_CONS': finl_con,
+        'Shape_Leng': shape_length,
+        'Shape_Area': shape_area,
+        'DIRECT_LIN' : ditrct_line,
+        }
+        report_data =pd.DataFrame(user_report_data, index = [0])
+        return report_data
+    
 
 
 
