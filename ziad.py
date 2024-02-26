@@ -404,7 +404,7 @@ if menu_id == "Application":
         # Predict the result
         prediction = classifier.predict(user_data)
         st.subheader('The Building is more likely to: ')
-        if prediction == "D0":
+        if prediction == 0:
             st.subheader("not to be impacted or damaged")
         else:
             st.subheader("to be impacted or damaged")
