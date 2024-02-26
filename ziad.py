@@ -15,6 +15,10 @@ from streamlit_lottie import st_lottie
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+
 
 st.set_page_config(
     page_title="Beirut Port Explosion",
@@ -44,6 +48,7 @@ def load_lottieurl(url):
 # Extract Lottie Animations
 
 lottie_eda = load_lottieurl("https://assets3.lottiefiles.com/packages/lf20_ic37y4kv.json")
+lottie_ml = load_lottieurl("https://assets7.lottiefiles.com/packages/lf20_q5qeoo3q.json")
 
 # Load css library
 remote_css("https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css")
@@ -269,6 +274,49 @@ if menu_id == "Tableau":
 # Predication Application Page
 
 if menu_id == "Application":
+
+    col = st.columns(2)
+
+    # Article
+    with col[0]:
+        st.markdown("""
+        <h3 class="f2 f1-m f-headline-l measure-narrow lh-title mv0">
+        Know The Risks
+         </h3>
+         <p class="f5 f4-ns lh-copy measure mb4" style="text-align: justify;font-family: Sans Serif">
+         Now, it's time to detect whether any existing or upcoming customer has a risk to churn.
+         Fill out the customers' demographic, account, and services information to see the result.
+         </p>
+            """,unsafe_allow_html = True)
+
+    # Lottie Animation
+    with col[1]:
+        st_lottie(lottie_ml, key = "Machine Learning", height = 300, width = 800)
+    # Create a list of columns to keep
+    columns_to_keep = ["FINAL_CLAS", "NoofFloor", "Type_of_St", "DISTANCE_F", "FINAL_CONS", "Shape_Leng", "Shape_Area", "DIRECT_LIN"]
+    # differentiate only between not impacted and impacted regardless of the degree of destruction
+    df['FINAL_CLAS'].replace(['D2', 'D3', 'D4', 'D5'], 'D1', inplace=True)
+    # Keep only the specified columns
+    df = df[columns_to_keep]
+    # Split the data into features (X) and the target variable (y)
+    X = df.drop('FINAL_CLAS', axis=1)  # Features
+    y = df['FINAL_CLAS']  # Target variable
+
+    # Encode categorical variables using Label Encoding
+    label_encoders = {}
+    categorical_columns = ['Type_of_St','FINAL_CONS']
+    for col in categorical_columns:
+    label_encoders[col] = LabelEncoder()
+    X[col] = label_encoders[col].fit_transform(X[col])
+
+    # Split the data into training and testing sets (e.g., 80% training, 20% testing)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Initialize and train a Random Forest Classifier (you can choose a different classifier)
+    classifier = RandomForestClassifier(random_state=42)
+    classifier.fit(X_train, y_train)
+
+
 
 
 #edit footer
