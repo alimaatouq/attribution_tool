@@ -120,7 +120,7 @@ if menu_id == "EDA":
          <p class="f5 f4-ns lh-copy measure mb4" style="text-align: justify;font-family: Sans Serif">
           Before implementing your machine learning model, it is important at the initial stage to explore your data.
           It is a good practice to understand the data first and try gather as many insights from it. EDA is all about
-          making sense of data in hand,before diving deep into it.
+          making sense of data in hand, before diving deep into it.
          </p>
             """,unsafe_allow_html = True)
         global eda_button
