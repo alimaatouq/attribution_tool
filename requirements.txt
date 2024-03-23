@@ -9,3 +9,4 @@ streamlit_lottie==0.0.3
 ydata-profiling
 streamlit_pandas_profiling
 scikit-learn == 1.0.2
+numba
