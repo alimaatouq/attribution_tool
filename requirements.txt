@@ -6,6 +6,6 @@ plotly==5.6.0
 requests==2.27.1
 streamlit==1.10.0
 streamlit_lottie==0.0.3
-ydata-profiling
+ydata-profiling == 1.0.2
 streamlit_pandas_profiling
 scikit-learn == 1.0.2
