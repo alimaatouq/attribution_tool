@@ -4,7 +4,7 @@ from pathlib import Path
 st.set_page_config(page_title="Attribution Multipage App", layout='wide')
 st.sidebar.success("Select a demo above.")
 
-st.write("# Welcome to the Data Attribution Tool! 👋")
+st.write("# Welcome to the Attribution Tool! 👋")
 
 st.markdown("""
 An all-in-one platform designed to streamline your data handling tasks. This app offers powerful tools to assist with path editing, media spend analysis, and submodel evaluations. Navigate through the pages using the sidebar to access the following features:
