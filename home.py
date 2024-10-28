@@ -5,5 +5,5 @@ st.set_page_config(
     page_icon="👋",
 )
 
-st.title("Main Page")
+st.title("Attribution Tool Main Page")
 st.sidebar.success("Select a page above.")
