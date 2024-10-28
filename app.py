@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from hydralit_components import Navbar
 from io import BytesIO
+from numpy.lib.arraysetops import isin
+from numpy import isin
+
+
 
 # App Configuration
 st.set_page_config(
