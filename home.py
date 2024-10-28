@@ -19,3 +19,19 @@ Upload your Excel files to extract columns related to media spends and impressio
 
 Analyze models from Excel or CSV files to identify submodels with non-zero coefficients and generate insightful summaries. Understand where zero-coefficient variables impact your spend and optimize your strategies effectively.
 """)
+
+#edit footer
+page_style= """
+    <style>
+    footer{
+        visibility: visible;
+        }
+    footer:after{
+        content: 'Developed by Ali Maatouk - Analytics @ Data Sciences';
+        display:block;
+        position:relative;
+        color:#1e54e4;
+    }
+    </style>"""
+
+st.markdown(page_style, unsafe_allow_html=True)
