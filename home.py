@@ -12,10 +12,10 @@ An all-in-one platform designed to streamline your data handling tasks. This app
 \n📂 ***Path Editor***
 
 Easily reformat file paths by converting slashes to double backslashes for use in various environments. Perfect for Windows directory paths or coding scenarios requiring special formatting.
-\n📊 Paid Media Spends Analyzer
+\n📊 ***Paid Media Spends Analyzer***
 
 Upload your Excel files to extract columns related to media spends and impressions. Quickly copy pre-formatted outputs for further use in R or other statistical tools.
-\n 📈 Submodel Analysis Tool
+\n 📈 ***Submodel Analysis Tool***
 
 Analyze models from Excel or CSV files to identify submodels with non-zero coefficients and generate insightful summaries. Understand where zero-coefficient variables impact your spend and optimize your strategies effectively.
 """)
