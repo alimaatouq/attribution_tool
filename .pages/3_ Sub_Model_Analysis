@@ -1,14 +1,23 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 from openpyxl import load_workbook
+
+def convert_csv_to_excel(csv_file):
+    """Convert CSV to Excel format."""
+    df = pd.read_csv(csv_file)
+    excel_file = BytesIO()
+    df.to_excel(excel_file, index=False, engine='openpyxl', sheet_name='Sheet1')
+    excel_file.seek(0)
+    return excel_file
 
 def analyze_file(uploaded_file):
     # Load the Excel file into a DataFrame
-    df = pd.read_excel(uploaded_file)
+    df = pd.read_excel(uploaded_file, engine='openpyxl')
 
     # Identify submodels where all variables have non-zero coefficients
     all_non_zero_submodels = df.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
-    
+
     # Identify submodels with at least one zero-coefficient variable
     submodels_with_zeros = df[df['coef'] == 0]
 
@@ -21,10 +30,12 @@ def analyze_file(uploaded_file):
 
     # Sort by the number of zero-coefficient variables (ascending order)
     summary = summary.sort_values(by='zero_count', ascending=True)
+
     # Format total spend values with dollar sign and comma separators
     summary['total_spend_on_zeros'] = summary['total_spend_on_zeros'].apply(
         lambda x: f"${x:,.2f}"
     )
+
     # Display results in Streamlit
     st.subheader("Submodels where all variables have non-zero coefficients:")
     if all_non_zero_submodels.empty:
@@ -41,9 +52,12 @@ def analyze_file(uploaded_file):
 # Streamlit App UI
 st.title("Submodel Analysis App")
 
-# File uploader widget
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+# File uploader widget (supports CSV and Excel)
+uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["xlsx", "csv"])
 
-# Analyze the uploaded file when it is provided
+# Analyze the uploaded file if it is provided
 if uploaded_file:
+    if uploaded_file.name.endswith(".csv"):
+        # Convert CSV to Excel format
+        uploaded_file = convert_csv_to_excel(uploaded_file)
     analyze_file(uploaded_file)
