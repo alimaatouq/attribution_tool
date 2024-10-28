@@ -1,11 +1,8 @@
-[theme]
-primaryColor = "#F63366"
-layout = "wide"
-
-[server]
-headless = true
-
-[pages]
-"Home" = "Home.py"
-"Path Editor" = "PathEditor.py"
-"Excel Processor" = "ExcelProcessor.py"
+my_streamlit_app/
+│
+├── Home.py               # Main page (first tab)
+├── PathEditor.py         # Path Editor page
+├── ExcelProcessor.py     # Excel Processor page
+├── .streamlit/
+│   └── config.toml       # Configuration for layout and tabs
+└── requirements.txt      # (Optional) Python dependencies
