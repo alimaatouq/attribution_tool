@@ -1,6 +1,6 @@
 import streamlit as st
-from PathEditor import path_editor_page
-from ExcelProcessor import excel_processor_page
+from pages.PathEditor import path_editor_page  # Adjusted import
+from pages.ExcelProcessor import excel_processor_page  # Adjusted import
 
 # Set the page configuration
 st.set_page_config(page_title="Multi-Page App", layout="wide")
