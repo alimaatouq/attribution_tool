@@ -9,7 +9,7 @@ st.write("# Welcome to the Data Attribution Tool! 👋")
 st.markdown("""
 An all-in-one platform designed to streamline your data handling tasks. This app offers powerful tools to assist with path editing, media spend analysis, and submodel evaluations. Navigate through the pages using the sidebar to access the following features:
 
-\n📂 Path Editor
+\n📂 ***Path Editor***
 
 Easily reformat file paths by converting slashes to double backslashes for use in various environments. Perfect for Windows directory paths or coding scenarios requiring special formatting.
 \n📊 Paid Media Spends Analyzer
