@@ -1,10 +1,5 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="R Path Editor",
-    layout='wide'
-)
-
 def double_backslashes(path):
     # Handle both backslashes and forward slashes
     path = path.replace('\\', '\\\\')  # Double backslashes
