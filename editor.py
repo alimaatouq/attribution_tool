@@ -6,7 +6,10 @@ st.set_page_config(
 )
 
 def double_backslashes(path):
-    return path.replace('\\', '\\\\')
+    # Handle both backslashes and forward slashes
+    path = path.replace('\\', '\\\\')  # Double backslashes
+    path = path.replace('/', '\\\\')   # Replace forward slashes with double backslashes
+    return path
 
 # Streamlit UI
 st.title("Path Editor - Double Backslashes")
