@@ -1,11 +1,7 @@
 import streamlit as st
 from pathlib import Path
 
-st.set_page_config(page_title="Multipage App", layout='wide')
-
-# Sidebar for navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Path Editor", "Paid Media Spends", "Submodel Analysis"])
+st.set_page_config(page_title="Attribution Multipage App", layout='wide')
 
 # Load and display the appropriate page
 if page == "Path Editor":
