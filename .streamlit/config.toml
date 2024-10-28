@@ -6,3 +6,15 @@ my_streamlit_app/
 ├── .streamlit/
 │   └── config.toml       # Configuration for layout and tabs
 └── requirements.txt      # Python dependencies
+
+[theme]
+primaryColor = "#F63366"
+layout = "wide"
+
+[server]
+headless = true
+
+[pages]
+"Home" = "Home.py"
+"Path Editor" = "PathEditor.py"
+"Excel Processor" = "ExcelProcessor.py"
