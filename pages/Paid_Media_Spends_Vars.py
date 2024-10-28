@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import pyperclip
 
 # Streamlit App Title
 st.title("Excel Column Extractor")
