@@ -1,5 +1,4 @@
 streamlit
 pandas
 openpyxl
-excel_processor_page
-path_editor_page
+
