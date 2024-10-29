@@ -31,5 +31,5 @@ if uploaded_file is not None:
 
     # Step 6: Display the outputs
     st.subheader("Copy the following outputs:")
-    st.code(spend_output, language='python', line_numbers=False, wrap_lines=True)
+    st.code(spend_output, language='r', line_numbers=False, wrap_lines=True)
     st.code(impression_output, language='r', line_numbers=False, wrap_lines=True)
