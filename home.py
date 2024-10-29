@@ -4,6 +4,10 @@ from pathlib import Path
 st.set_page_config(page_title="Attribution Multipage App", layout='wide')
 st.sidebar.success("Select a demo above.")
 
+# Initialize session state if not already
+if "uploaded_file" not in st.session_state:
+    st.session_state["uploaded_file"] = None
+
 st.write("# Welcome to the Attribution Tool! 👋")
 
 st.markdown("""
