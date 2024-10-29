@@ -18,8 +18,7 @@ uploaded_file = st.session_state["uploaded_file"]
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
     st.write(df.head())  # Example to display data
-else:
-    st.info("Please upload an Excel file to proceed.")
+
 
 if uploaded_file:
     # Read the Excel file
