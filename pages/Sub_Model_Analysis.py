@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 # Load the uploaded file
-uploaded_file = st.file_uploader("Upload your dataset", type=["csv"])
+uploaded_file = st.file_uploader("Upload your Pareto Aggregated file", type=["csv"])
 
 if uploaded_file is not None:
     # Read the CSV file
