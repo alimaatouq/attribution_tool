@@ -29,6 +29,9 @@ def analyze_file(uploaded_file):
         rsq_train_avg=('rsq_train', 'mean')  # Calculate the average rsq_train for each solID
     ).reset_index()
 
+    # Reorder columns to place rsq_train_avg after solID
+    summary = summary[['solID', 'rsq_train_avg', 'zero_count', 'total_spend_on_zeros', 'zero_vars']]
+
     # Sort by the number of zero-coefficient variables (ascending order)
     summary = summary.sort_values(by='zero_count', ascending=True)
 
@@ -54,7 +57,7 @@ def analyze_file(uploaded_file):
 st.title("Submodel Analysis App")
 
 # File uploader widget (supports CSV and Excel)
-uploaded_file = st.file_uploader("Upload your Pareto Aggregated Excel or CSV file", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["xlsx", "csv"])
 
 # Analyze the uploaded file if it is provided
 if uploaded_file:
