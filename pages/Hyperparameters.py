@@ -6,7 +6,7 @@ st.title("Hyperparameters Generator")
 
 # Use the uploaded file from session state if available
 if st.session_state["uploaded_file"] is None:
-    uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+    uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file
 else:
