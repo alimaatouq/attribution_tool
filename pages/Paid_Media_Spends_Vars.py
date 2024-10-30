@@ -10,7 +10,7 @@ if "uploaded_file" not in st.session_state:
 
 # Step 2: File uploader, only if no file in session state
 if st.session_state["uploaded_file"] is None:
-    uploaded_file = st.file_uploader("Please upload your Excel file", type=["xlsx"])
+    uploaded_file = st.file_uploader("Please upload your Processed Data Excel file", type=["xlsx"])
     if uploaded_file:
         st.session_state["uploaded_file"] = uploaded_file  # Save to session state
 else:
