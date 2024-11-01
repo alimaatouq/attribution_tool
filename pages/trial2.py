@@ -84,19 +84,20 @@ def summarize_channel_spend(spend_df):
     return channel_summary
 
 def create_contribution_table(spend_df, channel_summary_df):
-    # Get unique channels from spend_df
-    unique_channels = spend_df['Channel'].unique()
-
     # Create a list for the formatted contributions
     contribution_list = []
     
-    # Iterate over each unique channel
-    for channel in unique_channels:
-        # Get the percentage contribution for this channel from channel_summary_df
-        contribution_percentage = channel_summary_df.loc[channel_summary_df['Channel'] == channel, 'Percentage Contribution'].values[0]
-        
-        # Repeat the "Channel - Percentage%" string according to the percentage contribution
-        contribution_list.extend([f"{channel} - {contribution_percentage}%"] * int(contribution_percentage))
+    # Iterate over each unique channel in channel_summary_df
+    for _, row in channel_summary_df.iterrows():
+        if row['Channel'] != 'Total':  # Skip the total row if present
+            channel = row['Channel']
+            contribution_percentage = int(row['Percentage Contribution'])
+            
+            # Count how many times the channel appears in the spend_df
+            channel_count = spend_df[spend_df['Channel'] == channel].shape[0]
+            
+            # Repeat the "Channel - Percentage%" string according to the count from spend_df
+            contribution_list.extend([f"{channel} - {contribution_percentage}%"] * channel_count)
     
     # Convert the list to a DataFrame for display and download
     contribution_df = pd.DataFrame(contribution_list, columns=['Channel - Contribution'])
