@@ -61,28 +61,25 @@ def aggregate_spend(df, consolidated_df):
 
     # Convert spend data to DataFrame
     spend_df = pd.DataFrame(spend_data)
-
-    # Calculate total spend
-    total_spend = spend_df['Spend'].sum()
-    spend_df['Percentage Contribution'] = (spend_df['Spend'] / total_spend) * 100
-
-    # Add total row to DataFrame
-    total_row = pd.DataFrame([{
-        'Channel': 'Total',
-        'Creative': '',
-        'Spend': total_spend,
-        'Percentage Contribution': 100.0
-    }])
-    spend_df = pd.concat([spend_df, total_row], ignore_index=True)
-    
     return spend_df
 
+def summarize_channel_spend(spend_df):
+    # Calculate total spend by channel
+    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
+
+    # Calculate the total spend for all channels
+    total_spend = channel_summary['Spend'].sum()
+    
+    # Calculate percentage contribution for each channel, rounded to nearest whole number
+    channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
+
+    return channel_summary
 
 def download_excel(df):
     # Save DataFrame to an Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Consolidated Spend')
+        df.to_excel(writer, index=False, sheet_name='Channel Spend Summary')
         writer.close()  # Use close() instead of save()
     output.seek(0)
     return output
@@ -118,15 +115,31 @@ def main():
             spend_df = aggregate_spend(df, consolidated_df)
 
             # Display the aggregated spend data
-            st.subheader("Aggregated Spend Data")
+            st.subheader("Aggregated Spend Data by Channel and Creative")
             st.write(spend_df)
 
-            # Provide a download button for Excel
-            excel_data = download_excel(spend_df)
+            # Provide download option for aggregated spend data
+            excel_data_spend = download_excel(spend_df)
             st.download_button(
                 label="Download Aggregated Spend Data as Excel",
-                data=excel_data,
+                data=excel_data_spend,
                 file_name="aggregated_spend_data.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+            # Summarize total spend by channel with percentage contribution
+            channel_summary_df = summarize_channel_spend(spend_df)
+
+            # Display the channel spend summary
+            st.subheader("Total Spend and Percentage Contribution by Channel")
+            st.write(channel_summary_df)
+
+            # Provide download option for channel summary
+            excel_data_summary = download_excel(channel_summary_df)
+            st.download_button(
+                label="Download Channel Spend Summary as Excel",
+                data=excel_data_summary,
+                file_name="channel_spend_summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
