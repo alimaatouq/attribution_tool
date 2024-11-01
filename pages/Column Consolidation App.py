@@ -3,23 +3,25 @@ import pandas as pd
 import re
 
 def consolidate_columns(df, filter_option):
-    # Get initial column names
+    # Get initial column names and filter based on selected option
     columns = df.columns
+    filtered_columns = []
+
+    for col in columns:
+        # Check the filter option and match keywords accordingly
+        if filter_option == "Spend Variables" and "spend" not in col.lower():
+            continue
+        elif filter_option == "Impression Variables" and "impressions" not in col.lower():
+            continue
+        filtered_columns.append(col)
 
     # Consolidate column names by removing trailing numbers (e.g., "_1", "_2", etc.)
     consolidated_columns = []
     seen_columns = set()
     ordered_unique_columns = []
 
-    for col in columns:
+    for col in filtered_columns:
         new_col = re.sub(r'(_\d+)', '', col)
-        
-        # Filter columns based on the selected filter option
-        if filter_option == "Spend Variables" and "spend" not in new_col.lower():
-            continue
-        elif filter_option == "Impression Variables" and "impressions" not in new_col.lower():
-            continue
-        
         consolidated_columns.append(new_col)
 
         # Preserve order of first occurrences only
@@ -27,9 +29,9 @@ def consolidate_columns(df, filter_option):
             ordered_unique_columns.append(new_col)
             seen_columns.add(new_col)
 
-    # Create a DataFrame to show old and new column names
+    # Create a DataFrame to show old and new column names for filtered columns only
     consolidated_df = pd.DataFrame({
-        'Original Column Name': columns,
+        'Original Column Name': filtered_columns,
         'Consolidated Column Name': consolidated_columns
     })
 
