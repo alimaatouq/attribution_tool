@@ -34,7 +34,7 @@ def consolidate_columns(df, filter_option):
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
-def aggregate_spend_and_visits(df, consolidated_df):
+def aggregate_spend(df, consolidated_df):
     spend_data = []
 
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
@@ -46,38 +46,32 @@ def aggregate_spend_and_visits(df, consolidated_df):
             matching_spend_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
             spend_sum = df[matching_spend_columns].sum(axis=1).sum()
 
-            # Assuming visits column has a consistent name format like 'Channel_Visits'
-            visit_column = f"{channel}_Visits"
-            visits = df[visit_column].sum() if visit_column in df.columns else 0
-
             spend_data.append({
                 'Channel': channel,
                 'Creative': creative,
-                'Spend': spend_sum,
-                'Website Visits': visits
+                'Spend': spend_sum
             })
 
     spend_df = pd.DataFrame(spend_data)
-    spend_df['Cost per Visit'] = spend_df['Spend'] / spend_df['Website Visits']
     return spend_df
 
-def summarize_channel_spend(spend_df):
-    # Summing Spend and Visits for each channel
-    channel_summary = spend_df.groupby('Channel')[['Spend', 'Website Visits']].sum().reset_index()
+def summarize_channel_spend(spend_df, total_sessions):
+    # Calculate total spend by channel
+    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
 
-    # Calculate Cost per Visit as Spend divided by Visits
+    # Distribute total website visits proportionally based on spend
+    total_spend = channel_summary['Spend'].sum()
+    channel_summary['Website Visits'] = (channel_summary['Spend'] / total_spend) * total_sessions
     channel_summary['Cost per Visit'] = channel_summary['Spend'] / channel_summary['Website Visits']
 
-    # Calculate totals for Spend and Visits and a weighted average Cost per Visit
-    total_spend = channel_summary['Spend'].sum()
-    total_visits = channel_summary['Website Visits'].sum()
-    total_cost_per_visit = total_spend / total_visits
+    # Calculate totals for Spend, Visits, and a weighted average Cost per Visit
+    total_cost_per_visit = total_spend / total_sessions
 
     # Add a row for the total
     total_row = pd.DataFrame([{
         'Channel': 'Total',
         'Spend': total_spend,
-        'Website Visits': total_visits,
+        'Website Visits': total_sessions,
         'Cost per Visit': total_cost_per_visit,
     }])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
@@ -108,9 +102,13 @@ def main():
         st.write(consolidated_df)
 
         if filter_option == "Spend Variables":
-            spend_df = aggregate_spend_and_visits(df, consolidated_df)
+            spend_df = aggregate_spend(df, consolidated_df)
 
-            channel_summary_df = summarize_channel_spend(spend_df)
+            # Calculate total website visits from KPI_Website_Sessions column
+            total_sessions = df['KPI_Website_Sessions'].sum()
+            st.write(f"Total Website Visits: {total_sessions}")
+
+            channel_summary_df = summarize_channel_spend(spend_df, total_sessions)
             st.subheader("Channel Summary with Cost per Visit")
             st.write(channel_summary_df)
 
@@ -124,4 +122,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
