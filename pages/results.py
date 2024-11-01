@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import re
@@ -35,7 +34,7 @@ def consolidate_columns(df, filter_option):
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
-def aggregate_spend_and_sessions(df, consolidated_df):
+def aggregate_spend(df, consolidated_df):
     spend_data = []
 
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
@@ -46,44 +45,36 @@ def aggregate_spend_and_sessions(df, consolidated_df):
             
             matching_spend_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
             spend_sum = df[matching_spend_columns].sum(axis=1).sum()
-            
-            kpi_session_column = f"{channel}_KPI_Website_Sessions"
-            if kpi_session_column in df.columns:
-                sessions_sum = df[kpi_session_column].sum()
-            else:
-                sessions_sum = 0
 
             spend_data.append({
                 'Channel': channel,
                 'Creative': creative,
-                'Spend': spend_sum,
-                'Website Visits': sessions_sum
+                'Spend': spend_sum
             })
 
     spend_df = pd.DataFrame(spend_data)
-    spend_df['Cost per Visit'] = spend_df['Spend'] / spend_df['Website Visits']
-    spend_df = spend_df.sort_values(by='Cost per Visit')
     return spend_df
 
-def summarize_channel_spend(spend_df):
-    # Calculate total spend and visits by channel
-    channel_summary = spend_df.groupby('Channel')[['Spend', 'Website Visits']].sum().reset_index()
-    channel_summary['Cost per Visit'] = channel_summary['Spend'] / channel_summary['Website Visits']
-    
+def summarize_channel_spend(spend_df, total_sessions):
+    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
+
     total_spend = channel_summary['Spend'].sum()
     channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
+    
+    # Allocate website visits proportionally by channel spend
+    channel_summary['Website Visits'] = (channel_summary['Spend'] / total_spend) * total_sessions
+    channel_summary['Cost per Visit'] = channel_summary['Spend'] / channel_summary['Website Visits']
 
     total_row = pd.DataFrame([{
         'Channel': 'Total',
         'Spend': total_spend,
-        'Website Visits': channel_summary['Website Visits'].sum(),
-        'Cost per Visit': total_spend / channel_summary['Website Visits'].sum(),
+        'Website Visits': total_sessions,
+        'Cost per Visit': total_spend / total_sessions,
         'Percentage Contribution': 100
     }])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
 
     return channel_summary
-
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
@@ -109,15 +100,17 @@ def main():
         st.write(consolidated_df)
 
         if filter_option == "Spend Variables":
-            spend_df = aggregate_spend_and_sessions(df, consolidated_df)
-            st.subheader("Aggregated Spend Data by Channel, Creative, Website Visits, and Cost per Visit")
-            st.write(spend_df)
+            spend_df = aggregate_spend(df, consolidated_df)
 
-            channel_summary_df = summarize_channel_spend(spend_df)
+            # Calculate total website visits from KPI_Website_Sessions column
+            total_sessions = df['KPI_Website_Sessions'].sum()
+            st.write(f"Total Website Visits: {total_sessions}")
+
+            channel_summary_df = summarize_channel_spend(spend_df, total_sessions)
             st.subheader("Channel Summary with Cost per Visit and Percentage Contribution")
             st.write(channel_summary_df)
 
-            excel_data_final_output = download_excel(spend_df, sheet_name='Final Output')
+            excel_data_final_output = download_excel(channel_summary_df, sheet_name='Final Output')
             st.download_button(
                 label="Download Final Output Table as Excel",
                 data=excel_data_final_output,
