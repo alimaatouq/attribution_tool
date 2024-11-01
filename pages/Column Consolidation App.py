@@ -22,7 +22,9 @@ def consolidate_columns(df, filter_option):
     ordered_unique_columns = []
 
     for col in filtered_columns:
+        # Remove trailing numbers and apply transformation to remove "spend" or similar words
         new_col = re.sub(r'(_\d+)', '', col)
+        new_col = re.sub(r'(_Spend|_Impressions)', '', new_col, flags=re.IGNORECASE)  # Remove specified words
         consolidated_columns.append(new_col)
 
         # Preserve order of first occurrences only
