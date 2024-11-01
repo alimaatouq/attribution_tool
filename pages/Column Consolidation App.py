@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
+from io import BytesIO
 
 def consolidate_columns(df, filter_option):
     # Get initial column names and filter based on selected option
@@ -39,6 +40,15 @@ def consolidate_columns(df, filter_option):
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
+def download_excel(df):
+    # Save DataFrame to an Excel file in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Consolidated Columns')
+        writer.save()
+    output.seek(0)
+    return output
+
 def main():
     st.title("Column Consolidation App")
     st.write("Upload an Excel file to consolidate similar column names.")
@@ -66,12 +76,12 @@ def main():
         st.write(unique_columns_df)
 
         # Provide a download button for Excel
-        csv = unique_columns_df.to_csv(index=False).encode('utf-8')
+        excel_data = download_excel(unique_columns_df)
         st.download_button(
-            label="Download Ordered Consolidated Column Names as CSV",
-            data=csv,
-            file_name="ordered_consolidated_column_names.csv",
-            mime="text/csv",
+            label="Download Ordered Consolidated Column Names as Excel",
+            data=excel_data,
+            file_name="ordered_consolidated_column_names.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
 # Run the main function
