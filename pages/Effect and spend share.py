@@ -3,9 +3,15 @@ import pandas as pd
 import re
 from io import BytesIO
 
-# Helper function to consolidate and analyze based on `rn` column
-def consolidate_by_rn(df):
-    # Group by 'rn' and sum 'spend_share' and 'effect_share'
+# Helper function to consolidate and analyze based on 'rn' column for Spend variables only
+def consolidate_by_rn_spend(df):
+    # Filter rows where 'rn' column contains "Spend"
+    df = df[df['rn'].str.contains("Spend", case=False)]
+
+    # Remove trailing numbers from 'rn' values (e.g., Snap_InteriorOnly_2_Spend to Snap_InteriorOnly_Spend)
+    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+)(?=_Spend)', '', x))
+
+    # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
     consolidated_df = df.groupby('rn').agg({
         'spend_share': 'sum',
         'effect_share': 'sum'
@@ -14,7 +20,10 @@ def consolidate_by_rn(df):
     # Calculate 'difference' column
     consolidated_df['difference'] = consolidated_df['effect_share'] - consolidated_df['spend_share']
 
-    # Sort by 'effect_share' in descending order (so the highest is at the bottom)
+    # Reorder columns: 'rn', 'effect_share', 'spend_share', 'difference'
+    consolidated_df = consolidated_df[['rn', 'effect_share', 'spend_share', 'difference']]
+
+    # Sort by 'effect_share' in descending order, with the highest at the bottom
     consolidated_df = consolidated_df.sort_values(by='effect_share', ascending=True).reset_index(drop=True)
 
     return consolidated_df
@@ -28,11 +37,11 @@ def download_excel(df, sheet_name='Sheet1'):
     output.seek(0)
     return output
 
-# New page for consolidating based on `rn` and analyzing
+# New page for consolidating based on 'rn' and analyzing
 def consolidate_and_analyze_page():
-    st.title("Consolidate and Analyze by Model")
+    st.title("Consolidate and Analyze Spend Variables by Model")
 
-    # File uploader for both CSV and Excel files
+    # File uploader for CSV file
     uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
     
     if uploaded_file is not None:
@@ -51,8 +60,8 @@ def consolidate_and_analyze_page():
         # Filter DataFrame based on the selected solID model
         filtered_df = df[df['solID'] == selected_model]
 
-        # Consolidate by 'rn' and calculate required fields
-        consolidated_df = consolidate_by_rn(filtered_df)
+        # Consolidate by 'rn' for Spend variables and calculate required fields
+        consolidated_df = consolidate_by_rn_spend(filtered_df)
 
         # Display consolidated DataFrame
         st.subheader("Consolidated Data")
@@ -71,7 +80,7 @@ def consolidate_and_analyze_page():
 def main():
     st.sidebar.title("Navigation")
     pages = {
-        "Consolidate and Analyze by Model": consolidate_and_analyze_page
+        "Consolidate and Analyze Spend Variables by Model": consolidate_and_analyze_page
     }
     
     page_selection = st.sidebar.radio("Go to", list(pages.keys()))
