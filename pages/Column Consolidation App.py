@@ -45,7 +45,7 @@ def download_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Consolidated Columns')
-        writer.save()
+        writer.close()  # Use close() instead of save()
     output.seek(0)
     return output
 
