@@ -104,6 +104,7 @@ def create_contribution_table(spend_df, channel_summary_df):
     return contribution_df
 
 
+
 def download_excel(df, sheet_name='Sheet1'):
     # Save DataFrame to an Excel file in memory
     output = BytesIO()
@@ -112,34 +113,6 @@ def download_excel(df, sheet_name='Sheet1'):
         writer.close()  # Use close() instead of save()
     output.seek(0)
     return output
-
-def prepare_copy_paste_table(spend_df, channel_summary_df):
-    # Display the column names to ensure we have the correct ones
-    print("Columns in channel_summary_df:", channel_summary_df.columns)
-    
-    # Create a copy of spend_df to work with
-    spend_df_copy = spend_df.copy()
-
-    # Initialize a new column for Channel - Contribution
-    spend_df_copy['Channel - Contribution'] = spend_df_copy['Channel']
-    
-    # Iterate over each unique channel and assign the matched contribution
-    for _, row in channel_summary_df.iterrows():
-        try:
-            channel = row['Channel']
-            if channel != 'Total':  # Skip 'Total' row if present
-                contribution_percentage = int(row['Percentage Contribution'])
-                
-                # Update 'Channel - Contribution' column to include the channel with contribution percentage
-                spend_df_copy.loc[spend_df_copy['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
-        
-        except KeyError as e:
-            print(f"KeyError: {e}. Check if 'Channel' or 'Percentage Contribution' exists in channel_summary_df.")
-
-    # Reorder columns to make 'Channel - Contribution' the first column and drop the original 'Channel' column
-    spend_df_copy = spend_df_copy[['Channel - Contribution'] + [col for col in spend_df_copy.columns if col != 'Channel' and col != 'Channel - Contribution']]
-    
-    return spend_df_copy
 
 
 
@@ -170,34 +143,34 @@ def main():
         st.write(unique_columns_df)
 
         # If "Spend Variables" selected, aggregate spend columns
-        if filter_option == "Spend Variables":
-            spend_df = aggregate_spend(df, consolidated_df)
+if filter_option == "Spend Variables":
+    spend_df = aggregate_spend(df, consolidated_df)
 
-            # Display the aggregated spend data
-            st.subheader("Aggregated Spend Data by Channel and Creative")
-            st.write(spend_df)
+    # Display the aggregated spend data
+    st.subheader("Aggregated Spend Data by Channel and Creative")
+    st.write(spend_df)
 
-            # Summarize total spend by channel with percentage contribution
-            channel_summary_df = summarize_channel_spend(spend_df)
+    # Summarize total spend by channel with percentage contribution
+    channel_summary_df = summarize_channel_spend(spend_df)
 
-            # Create and display the contribution table
-            contribution_df = create_contribution_table(spend_df, channel_summary_df)
-            st.subheader("Channel Contribution Table")
-            st.write(contribution_df)
+    # Display the channel spend summary
+    st.subheader("Total Spend and Percentage Contribution by Channel")
+    st.write(channel_summary_df)
 
-            # Prepare the copy-paste friendly table
-            copy_paste_df = prepare_copy_paste_table(spend_df, contribution_df)
-            st.subheader("Copy-Paste Table for Excel")
-            st.write(copy_paste_df)
+    # Create and display the contribution table
+    contribution_df = create_contribution_table(spend_df, channel_summary_df)
+    st.subheader("Channel Contribution Table")
+    st.write(contribution_df)
 
-            # Provide download option for the copy-paste table
-            excel_data_copy_paste = download_excel(copy_paste_df, sheet_name='Copy-Paste Table')
-            st.download_button(
-                label="Download Copy-Paste Table as Excel",
-                data=excel_data_copy_paste,
-                file_name="copy_paste_table.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+    # Provide download option for the contribution table
+    excel_data_contribution = download_excel(contribution_df, sheet_name='Contribution Table')
+    st.download_button(
+        label="Download Channel Contribution Table as Excel",
+        data=excel_data_contribution,
+        file_name="channel_contribution_table.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
 
 # Run the main function
 if __name__ == "__main__":
