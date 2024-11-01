@@ -113,17 +113,24 @@ def download_excel(df, sheet_name='Sheet1'):
     output.seek(0)
     return output
 
-def prepare_copy_paste_table(spend_df, contribution_df):
-    # Reset the index for both DataFrames to ensure alignment
-    spend_df = spend_df.reset_index(drop=True)
-    contribution_df = contribution_df.reset_index(drop=True)
-    
-    # Add the 'Channel - Contribution' column from contribution_df as the first column in spend_df
+def prepare_copy_paste_table(spend_df, channel_summary_df):
+    # Create a copy of spend_df to work with
     spend_df_copy = spend_df.copy()
-    spend_df_copy.insert(0, 'Channel - Contribution', contribution_df['Channel - Contribution'])
+
+    # Initialize a new column for Channel - Contribution
+    spend_df_copy['Channel - Contribution'] = spend_df_copy['Channel']
     
-    # Drop the original 'Channel' column to avoid duplication
-    spend_df_copy = spend_df_copy.drop(columns=['Channel'])
+    # Iterate over each unique channel and assign the matched contribution
+    for _, row in channel_summary_df.iterrows():
+        channel = row['Channel']
+        if channel != 'Total':  # Skip 'Total' row if present
+            contribution_percentage = int(row['Percentage Contribution'])
+            
+            # Update 'Channel - Contribution' column to include the channel with contribution percentage
+            spend_df_copy.loc[spend_df_copy['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
+    
+    # Reorder columns to make 'Channel - Contribution' the first column and drop the original 'Channel' column
+    spend_df_copy = spend_df_copy[['Channel - Contribution'] + [col for col in spend_df_copy.columns if col != 'Channel' and col != 'Channel - Contribution']]
     
     return spend_df_copy
 
