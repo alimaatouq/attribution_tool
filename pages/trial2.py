@@ -169,7 +169,7 @@ def main():
             )
 
             # Create and display the contribution table
-            contribution_df = create_contribution_table(channel_summary_df)
+            contribution_df = create_contribution_table(spend_df, channel_summary_df)
             st.subheader("Channel Contribution Table")
             st.write(contribution_df)
 
