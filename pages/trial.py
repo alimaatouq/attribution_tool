@@ -73,7 +73,16 @@ def summarize_channel_spend(spend_df):
     # Calculate percentage contribution for each channel, rounded to nearest whole number
     channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
 
+    # Add a row for the total spend
+    total_row = pd.DataFrame([{
+        'Channel': 'Total',
+        'Spend': total_spend,
+        'Percentage Contribution': 100
+    }])
+    channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
+
     return channel_summary
+
 
 def download_excel(df):
     # Save DataFrame to an Excel file in memory
