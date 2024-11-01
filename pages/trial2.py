@@ -83,17 +83,22 @@ def summarize_channel_spend(spend_df):
 
     return channel_summary
 
-def create_contribution_table(channel_summary_df):
-    # Create the list with channel and contribution
+def create_contribution_table(spend_df, channel_summary_df):
+    # Merge the percentage contribution from channel_summary_df with spend_df
+    contribution_data = spend_df.merge(channel_summary_df[['Channel', 'Percentage Contribution']], on='Channel', how='left')
+    
+    # Create a list with channel-creative pairs and their contribution
     contribution_list = []
     
-    for _, row in channel_summary_df.iterrows():
-        if row['Channel'] != 'Total':  # Exclude the total row
-            contribution_list.extend([f"{row['Channel']} - {row['Percentage Contribution']}%"] * row['Percentage Contribution'])
+    for _, row in contribution_data.iterrows():
+        entry = f"{row['Channel']} - {row['Percentage Contribution']}%"
+        # Repeat the entry based on the percentage contribution rounded to the nearest integer
+        contribution_list.extend([entry] * row['Percentage Contribution'])
     
     # Convert to DataFrame for display
     contribution_df = pd.DataFrame(contribution_list, columns=['Channel - Contribution'])
     return contribution_df
+
 
 def download_excel(df, sheet_name='Sheet1'):
     # Save DataFrame to an Excel file in memory
