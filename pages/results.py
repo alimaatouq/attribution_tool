@@ -66,8 +66,10 @@ def aggregate_spend_and_sessions(df, consolidated_df):
     return spend_df
 
 def summarize_channel_spend(spend_df):
-    channel_summary = spend_df.groupby('Channel')['Spend', 'Website Visits'].sum().reset_index()
+    # Calculate total spend and visits by channel
+    channel_summary = spend_df.groupby('Channel')[['Spend', 'Website Visits']].sum().reset_index()
     channel_summary['Cost per Visit'] = channel_summary['Spend'] / channel_summary['Website Visits']
+    
     total_spend = channel_summary['Spend'].sum()
     channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
 
@@ -81,6 +83,7 @@ def summarize_channel_spend(spend_df):
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
 
     return channel_summary
+
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
