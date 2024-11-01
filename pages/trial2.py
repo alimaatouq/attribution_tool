@@ -114,17 +114,19 @@ def download_excel(df, sheet_name='Sheet1'):
     return output
 
 def prepare_copy_paste_table(spend_df, contribution_df):
-    # Ensure the length of contribution_df matches spend_df
+    # Reset the index for both DataFrames to ensure alignment
+    spend_df = spend_df.reset_index(drop=True)
     contribution_df = contribution_df.reset_index(drop=True)
+    
+    # Add the 'Channel - Contribution' column from contribution_df as the first column in spend_df
     spend_df_copy = spend_df.copy()
+    spend_df_copy.insert(0, 'Channel - Contribution', contribution_df['Channel - Contribution'])
     
-    # Replace the 'Channel' column with 'Channel - Contribution'
-    spend_df_copy['Channel - Contribution'] = contribution_df['Channel - Contribution']
-    
-    # Drop the original 'Channel' column
+    # Drop the original 'Channel' column to avoid duplication
     spend_df_copy = spend_df_copy.drop(columns=['Channel'])
     
     return spend_df_copy
+
 
 def main():
     st.title("Column Consolidation App")
