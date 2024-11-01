@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import re
 
-def consolidate_columns(df):
+def consolidate_columns(df, filter_option):
     # Get initial column names
     columns = df.columns
+
     # Consolidate column names by removing trailing numbers (e.g., "_1", "_2", etc.)
     consolidated_columns = []
     seen_columns = set()
@@ -12,8 +13,15 @@ def consolidate_columns(df):
 
     for col in columns:
         new_col = re.sub(r'(_\d+)', '', col)
-        consolidated_columns.append(new_col)
         
+        # Filter columns based on the selected filter option
+        if filter_option == "Spend Variables" and "spend" not in new_col.lower():
+            continue
+        elif filter_option == "Impression Variables" and "impressions" not in new_col.lower():
+            continue
+        
+        consolidated_columns.append(new_col)
+
         # Preserve order of first occurrences only
         if new_col not in seen_columns:
             ordered_unique_columns.append(new_col)
@@ -40,8 +48,12 @@ def main():
         # Load the Excel file
         df = pd.read_excel(uploaded_file)
 
-        # Process the DataFrame
-        consolidated_df, unique_columns_df = consolidate_columns(df)
+        # Filter options for selecting columns
+        filter_option = st.selectbox("Select Variable Type to Consolidate", 
+                                     options=["All Variables", "Spend Variables", "Impression Variables"])
+
+        # Process the DataFrame based on selected filter
+        consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
 
         # Display the consolidated column mapping as a table
         st.subheader("Column Consolidation Mapping")
