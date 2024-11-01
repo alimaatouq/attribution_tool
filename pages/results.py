@@ -56,27 +56,25 @@ def aggregate_spend(df, consolidated_df):
     return spend_df
 
 def summarize_channel_spend(spend_df, total_sessions):
-    # Calculate total spend by channel without allocating website visits proportionally
     channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
-
-    # Calculate total spend and cost per visit based on the total sessions across all channels
-    channel_summary['Cost per Visit'] = channel_summary['Spend'] / total_sessions
 
     total_spend = channel_summary['Spend'].sum()
     channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
+    
+    # Allocate website visits proportionally by channel spend
+    channel_summary['Website Visits'] = (channel_summary['Spend'] / total_spend) * total_sessions
+    channel_summary['Cost per Visit'] = channel_summary['Spend'] / channel_summary['Website Visits']
 
     total_row = pd.DataFrame([{
         'Channel': 'Total',
         'Spend': total_spend,
+        'Website Visits': total_sessions,
         'Cost per Visit': total_spend / total_sessions,
         'Percentage Contribution': 100
     }])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
 
     return channel_summary
-
-
-
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
