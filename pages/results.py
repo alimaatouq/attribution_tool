@@ -59,26 +59,22 @@ def summarize_channel_spend(spend_df, total_sessions):
     # Calculate total spend by channel without allocating website visits proportionally
     channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
 
-    # Calculate cost per visit based on the total sessions across all channels
+    # Calculate total spend and cost per visit based on the total sessions across all channels
     channel_summary['Cost per Visit'] = channel_summary['Spend'] / total_sessions
 
-    # Calculate total spend and percentage contribution for each channel
     total_spend = channel_summary['Spend'].sum()
     channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
 
-    # Calculate the weighted average cost per visit for the Total row
-    total_cost_per_visit = total_spend / total_sessions
-
-    # Add a row for the total
     total_row = pd.DataFrame([{
         'Channel': 'Total',
         'Spend': total_spend,
-        'Cost per Visit': total_cost_per_visit,
+        'Cost per Visit': total_spend / total_sessions,
         'Percentage Contribution': 100
     }])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
 
     return channel_summary
+
 
 
 
