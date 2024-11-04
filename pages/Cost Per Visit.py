@@ -33,12 +33,16 @@ def clean_and_merge(spend_df, visits_df):
         'Visits': total_visits,
         'Cost per Visit': avg_cost_per_visit
     }])
-    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
 
-    # Sort by Channel to group all similar channels together
-    merged_df = merged_df.sort_values(by="Channel").reset_index(drop=True)
+    # Remove the TOTAL row, sort by 'Cost per Visit', then re-attach TOTAL row at the end
+    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
+    merged_df_no_total = merged_df[merged_df['Channel'] != 'TOTAL']
+    total_row_df = merged_df[merged_df['Channel'] == 'TOTAL']
     
-    return merged_df
+    # Sort merged_df_no_total by 'Cost per Visit' in ascending order
+    merged_df_sorted = pd.concat([merged_df_no_total.sort_values(by="Cost per Visit"), total_row_df], ignore_index=True)
+
+    return merged_df_sorted
 
 def download_excel(df, sheet_name='Merged Data'):
     # Convert the DataFrame to an Excel file in memory
@@ -50,7 +54,7 @@ def download_excel(df, sheet_name='Merged Data'):
 
 def main():
     st.title("Channel Spend and Visits Summary with Cost per Visit")
-    st.write("Upload the Spend and Visits Excel files to merge them based on the channel and calculate Cost per Visit.")
+    st.write("Upload the Spend and Visits Excel files to merge them based on the channel, calculate Cost per Visit, and sort by Cost per Visit.")
 
     # File uploaders for the two Excel files
     spend_file = st.file_uploader("Upload Aggregated Spend Data by Channel", type="xlsx")
