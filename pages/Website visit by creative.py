@@ -21,24 +21,25 @@ def aggregate_website_visits(df):
         if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
             continue
             
-        # Extract the channel and creative names (e.g., "TikTok_CreativeA" from "TikTok_CreativeA_Spend")
-        match = re.match(r'([A-Za-z]+)_(.*?)_Spend', col)
+        # Adjust regex to capture multi-word channels and creatives, and remove trailing numbers (e.g., YouTube_Generic_1_Spend)
+        match = re.match(r'([A-Za-z\s]+)_(.*?)(?:_\d+)?_Spend', col)
         if match:
-            channel_name = match.group(1)
-            creative_name = match.group(2)
+            # Standardize channel and creative names by stripping spaces, numbers, and converting to lowercase
+            channel_name = match.group(1).strip().lower()
+            creative_name = match.group(2).strip().lower()
             
-            # Initialize channel-creative sum if not already in dictionary
+            # Form the consolidated key without trailing numbers
             key = f"{channel_name}_{creative_name}"
             if key not in channel_creative_data:
                 channel_creative_data[key] = 0
-                
-            # Convert column to numeric, forcing non-numeric values to NaN, then sum
-            column_sum = pd.to_numeric(df[col], errors='coerce').sum()
+
+            # Convert column to numeric, forcing non-numeric values to NaN, then sum, treating NaNs as zero
+            column_sum = pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
             channel_creative_data[key] += column_sum
     
     # Convert channel_creative_data dictionary to a DataFrame for display
     channel_creative_df = pd.DataFrame(
-        [{'Channel': key.split('_')[0], 'Creative': key.split('_')[1], 'Visits': visits}
+        [{'Channel': key.split('_')[0].title(), 'Creative': key.split('_')[1].title(), 'Visits': visits}
          for key, visits in channel_creative_data.items()]
     )
     
