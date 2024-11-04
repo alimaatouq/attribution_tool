@@ -24,11 +24,11 @@ def aggregate_website_visits(df):
         if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
             continue
             
-        # Extract the channel and creative names (e.g., "TikTok_CreativeA" from "TikTok_CreativeA_Spend")
-        match = re.match(r'([A-Za-z]+)_(.*?)_Spend', col)
+        # Adjusted regex to capture multi-word channels and creatives like "Snap Exterior_Spend"
+        match = re.match(r'([A-Za-z\s]+)_(.*?)_Spend', col)
         if match:
-            channel_name = match.group(1)
-            creative_name = match.group(2)
+            channel_name = match.group(1).strip()
+            creative_name = match.group(2).strip()
             
             # Initialize channel-creative sum if not already in dictionary
             key = f"{channel_name}_{creative_name}"
