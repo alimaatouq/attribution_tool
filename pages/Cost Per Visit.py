@@ -3,9 +3,9 @@ import pandas as pd
 from io import BytesIO
 
 def load_data(spend_file, visits_file):
-    # Load data from uploaded Excel files
-    spend_df = pd.read_excel(spend_file, sheet_name='Sheet1')
-    visits_df = pd.read_excel(visits_file, sheet_name='Sheet1')
+    # Load the first sheet in each uploaded Excel file
+    spend_df = pd.read_excel(spend_file)  # Load first sheet by default
+    visits_df = pd.read_excel(visits_file)  # Load first sheet by default
     return spend_df, visits_df
 
 def merge_and_calculate(spend_df, visits_df):
