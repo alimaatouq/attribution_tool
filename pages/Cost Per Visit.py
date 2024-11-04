@@ -39,6 +39,41 @@ def download_excel(df, sheet_name='Merged Data'):
 
 # Function definitions here (load_data, clean_and_merge, download_excel)
 
+def clean_and_merge(spend_df, visits_df):
+    # Merge the two DataFrames on the "Channel" column
+    merged_df = pd.merge(spend_df, visits_df, on="Channel", how="inner")
+
+    # Ensure Spend and Visits columns are numeric; convert non-numeric to NaN
+    merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
+    merged_df['Visits'] = pd.to_numeric(merged_df['Visits'], errors='coerce').fillna(0)
+
+    # Calculate Cost per Visit only where Visits > 0 to avoid division by zero
+    merged_df['Cost per Visit'] = merged_df.apply(
+        lambda row: row['Spend'] / row['Visits'] if row['Visits'] > 0 else 0, axis=1
+    )
+
+    # Format Spend and Visits as integers, round Cost per Visit to 2 decimals
+    merged_df['Spend'] = merged_df['Spend'].astype(int)
+    merged_df['Visits'] = merged_df['Visits'].astype(int)
+    merged_df['Cost per Visit'] = merged_df['Cost per Visit'].round(2)
+    
+    # Calculate Totals for Spend and Visits, and Average for Cost per Visit
+    total_spend = merged_df['Spend'].sum()
+    total_visits = merged_df['Visits'].sum()
+    avg_cost_per_visit = round(total_spend / total_visits, 2) if total_visits > 0 else 0
+
+    # Add a total row to the DataFrame
+    total_row = pd.DataFrame([{
+        'Channel': 'TOTAL',
+        'Spend': total_spend,
+        'Visits': total_visits,
+        'Cost per Visit': avg_cost_per_visit
+    }])
+    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
+    
+    return merged_df
+
+
 def main():
     st.title("Channel Spend and Visits Summary with Cost per Visit")
     st.write("Upload the Spend and Visits Excel files to merge them based on the channel and calculate Cost per Visit.")
