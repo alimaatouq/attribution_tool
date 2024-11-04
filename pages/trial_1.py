@@ -9,7 +9,13 @@ def load_data(spend_file, visits_file):
     return spend_df, visits_df
 
 def clean_and_merge(spend_df, visits_df):
-    # Merge the two DataFrames on the "Channel" and "Creative" columns
+    # Standardize channel and creative names by converting to lowercase and stripping whitespace
+    spend_df['Channel'] = spend_df['Channel'].str.lower().str.strip()
+    spend_df['Creative'] = spend_df['Creative'].str.lower().str.strip()
+    visits_df['Channel'] = visits_df['Channel'].str.lower().str.strip()
+    visits_df['Creative'] = visits_df['Creative'].str.lower().str.strip()
+    
+    # Merge the two DataFrames on the standardized "Channel" and "Creative" columns
     merged_df = pd.merge(spend_df, visits_df, on=["Channel", "Creative"], how="outer")
 
     # Ensure Spend and Visits columns are numeric; convert non-numeric to NaN
