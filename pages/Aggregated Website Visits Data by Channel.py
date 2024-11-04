@@ -30,8 +30,9 @@ def aggregate_website_visits(df):
             if channel_name not in channel_data:
                 channel_data[channel_name] = 0
                 
-            # Sum up the values for this column into the corresponding channel total
-            channel_data[channel_name] += df[col].sum()
+            # Convert column to numeric, forcing non-numeric values to NaN, then sum
+            column_sum = pd.to_numeric(df[col], errors='coerce').sum()
+            channel_data[channel_name] += column_sum
     
     # Convert channel_data dictionary to a DataFrame for display
     channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Total Visits'])
