@@ -79,13 +79,21 @@ def create_final_output_table(spend_df):
     # Make a copy of spend_df to avoid modifying the original data
     final_df = spend_df.copy()
 
+    # Calculate the total spend across all channels
+    total_spend = final_df['Spend'].sum()
+    
     # Format the Spend column as currency
     final_df['Spend'] = final_df['Spend'].apply(lambda x: f"${x:,.0f}")
+
+    # Append a row for total spend to the DataFrame
+    total_row = pd.DataFrame([{'Channel': 'Total', 'Spend': f"${total_spend:,.0f}"}])
+    final_df = pd.concat([final_df, total_row], ignore_index=True)
 
     # Reorder columns to show only Channel and Spend
     final_df = final_df[['Channel', 'Spend']]
     
     return final_df
+
 
 def main():
     st.title("Channel Spend Aggregation App")
