@@ -12,8 +12,14 @@ def merge_and_calculate(spend_df, visits_df):
     # Merge the two DataFrames on the "Channel" column
     merged_df = pd.merge(spend_df, visits_df, on="Channel", how="inner")
 
-    # Calculate Cost per Visit
-    merged_df['Cost per Visit'] = merged_df['Spend'] / merged_df['Visits']
+    # Ensure Spend and Visits columns are numeric, converting non-numeric to NaN and filling NaN with 0
+    merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
+    merged_df['Visits'] = pd.to_numeric(merged_df['Visits'], errors='coerce').fillna(0)
+
+    # Calculate Cost per Visit and handle division by zero
+    merged_df['Cost per Visit'] = merged_df.apply(
+        lambda row: row['Spend'] / row['Visits'] if row['Visits'] > 0 else 0, axis=1
+    )
     
     # Format Spend and Visits as integers and Cost per Visit as a float with 2 decimal places
     merged_df['Spend'] = merged_df['Spend'].astype(int)
