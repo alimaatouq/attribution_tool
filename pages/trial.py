@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
+def load_csv_data(uploaded_file):
+    # Load data from an uploaded CSV file
+    return pd.read_csv(uploaded_file)
+
 def load_excel_data(uploaded_file):
     # Load data from an uploaded Excel file
     return pd.read_excel(uploaded_file)
@@ -15,9 +19,9 @@ def aggregate_data_by_channel(df):
     channel_data = {}
 
     for col in df.columns:
-        # Only process columns that contain "spend" (assumed spend columns)
+        # Process only columns containing "spend" (assumed spend columns)
         if 'spend' in col.lower():
-            # Extract channel name from column (e.g., "TikTok" from "TikTok_Spend")
+            # Extract channel name (e.g., "TikTok" from "TikTok_Spend")
             channel = col.split('_')[0]
             
             # Initialize channel entry if not already present
@@ -27,7 +31,7 @@ def aggregate_data_by_channel(df):
             # Sum up the spend data for the channel
             channel_data[channel]['Spend'] += pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
     
-    # Convert channel data to a DataFrame for easier manipulation
+    # Convert channel data to a DataFrame
     channel_df = pd.DataFrame([
         {'Channel': channel, 'Spend': data['Spend'], 'Visits': data['Visits']}
         for channel, data in channel_data.items()
@@ -59,27 +63,37 @@ def download_excel(df, sheet_name='Channel Data'):
 
 def main():
     st.title("Channel Spend and Visits Aggregation Tool")
-    st.write("Upload the necessary files to aggregate data by channel.")
+    st.write("Upload the necessary CSV and Excel files to aggregate data by channel.")
 
-    # File uploader
-    spend_file = st.file_uploader("Upload Channel Spend and Visits Data", type="xlsx")
+    # File uploaders for CSV and Excel files
+    csv_file = st.file_uploader("Upload Channel Data (CSV)", type="csv")
+    excel_file = st.file_uploader("Upload Additional Channel Data (Excel)", type="xlsx")
     
-    if spend_file:
+    if csv_file and excel_file:
         # Load data
-        df = load_excel_data(spend_file)
-        st.write("Data Preview:", df.head())
+        csv_data = load_csv_data(csv_file)
+        excel_data = load_excel_data(excel_file)
+        
+        # Display preview of each file
+        st.subheader("CSV Data Preview")
+        st.write(csv_data.head())
+        
+        st.subheader("Excel Data Preview")
+        st.write(excel_data.head())
 
-        # Select model (solID) if applicable
-        models = df['solID'].unique() if 'solID' in df.columns else []
-        selected_model = st.selectbox("Select Model (solID)", options=models) if models else None
-
-        # Filter data by selected model if applicable
-        if selected_model:
-            df = filter_by_model(df, selected_model)
-            st.write(f"Data for Model {selected_model}:", df)
+        # Check for model filtering if 'solID' column exists in CSV data
+        if 'solID' in csv_data.columns:
+            models = csv_data['solID'].unique()
+            selected_model = st.selectbox("Select Model (solID)", options=models)
+            csv_data = filter_by_model(csv_data, selected_model)
+            st.write(f"Filtered CSV Data for Model {selected_model}")
+            st.write(csv_data)
+        
+        # Combine data from both files if necessary
+        combined_data = pd.concat([csv_data, excel_data], ignore_index=True)
 
         # Aggregate data by channel
-        aggregated_data = aggregate_data_by_channel(df)
+        aggregated_data = aggregate_data_by_channel(combined_data)
         st.subheader("Aggregated Data by Channel with Total")
         st.write(aggregated_data)
 
