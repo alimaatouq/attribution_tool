@@ -7,12 +7,22 @@ def consolidate_and_aggregate(data_df, mapping_df, channels):
     column_map = mapping_df.set_index('Original Column Name')['Consolidated Column Name'].to_dict()
     data_df = data_df.rename(columns=column_map)
 
-    # Identify columns containing 'spend' and aggregate by channel
-    spend_columns = [col for col in data_df.columns if 'spend' in col.lower()]
-    channel_spend = {channel: data_df[[col for col in spend_columns if channel.lower() in col.lower()]].sum(axis=1) 
-                     for channel in channels}
-    aggregated_df = pd.DataFrame(channel_spend)
+    # Initialize a dictionary to store spend sums for each channel
+    aggregated_data = {}
+
+    # Aggregate each channel's spend once
+    for channel in channels:
+        # Identify spend columns specific to the current channel after consolidation
+        channel_spend_columns = [col for col in data_df.columns if f"{channel}_Spend" in col]
+        
+        # Sum up the spends across all consolidated columns for the channel
+        if channel_spend_columns:
+            aggregated_data[channel] = data_df[channel_spend_columns].sum(axis=1)
+
+    # Create a DataFrame for aggregated spends with a single column per channel
+    aggregated_df = pd.DataFrame(aggregated_data)
     aggregated_df['Date'] = data_df['Date']
+
     return aggregated_df
 
 # Streamlit UI for file upload and processing
