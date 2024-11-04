@@ -112,9 +112,7 @@ def main():
             st.subheader("Aggregated Spend Data by Channel")
             st.write(spend_df)
 
-            channel_summary_df = summarize_channel_spend(spend_df)
-
-            final_output_df = create_final_output_table(spend_df, channel_summary_df)
+            final_output_df = create_final_output_table(spend_df)
             st.subheader("Final Output Table")
             st.write(final_output_df)
 
