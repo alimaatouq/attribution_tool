@@ -36,7 +36,12 @@ def aggregate_website_visits(df):
     
     # Convert channel_data dictionary to a DataFrame for display
     channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Total Spend'])
+    
+    # Convert Total Spend to whole numbers (integers)
+    channel_df['Total Spend'] = channel_df['Total Spend'].round(0).astype(int)
+    
     return channel_df
+
 
 
 def main():
