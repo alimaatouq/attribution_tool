@@ -4,7 +4,7 @@ import re
 from io import BytesIO
 
 def load_data(uploaded_file):
-    # Load the uploaded file
+    # Load the uploaded CSV file
     return pd.read_csv(uploaded_file)
 
 def filter_by_model(df, selected_model):
@@ -49,6 +49,12 @@ def aggregate_website_visits(df):
     
     return channel_df
 
+def download_excel(df, sheet_name='Sheet1'):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    return output
 
 def main():
     st.title("Website Visits Aggregation by Channel")
