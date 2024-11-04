@@ -24,13 +24,14 @@ def aggregate_website_visits(df):
         if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
             continue
             
-        # Adjusted regex to capture multi-word channels and creatives like "Snap Exterior_Spend"
-        match = re.match(r'([A-Za-z\s]+)_(.*?)_Spend', col)
+        # Adjust regex to capture multi-word channels and creatives, and remove trailing numbers (e.g., YouTube_Generic_1_Spend)
+        match = re.match(r'([A-Za-z\s]+)_(.*?)(?:_\d+)?_Spend', col)
         if match:
-            channel_name = match.group(1).strip()
-            creative_name = match.group(2).strip()
+            # Standardize channel and creative names by stripping spaces, numbers, and converting to lowercase
+            channel_name = match.group(1).strip().lower()
+            creative_name = match.group(2).strip().lower()
             
-            # Initialize channel-creative sum if not already in dictionary
+            # Form the consolidated key without trailing numbers
             key = f"{channel_name}_{creative_name}"
             if key not in channel_creative_data:
                 channel_creative_data[key] = 0
@@ -45,7 +46,7 @@ def aggregate_website_visits(df):
     
     # Convert channel_creative_data dictionary to a DataFrame for display
     channel_creative_df = pd.DataFrame(
-        [{'Channel': key.split('_')[0], 'Creative': key.split('_')[1], 'Visits': visits}
+        [{'Channel': key.split('_')[0].title(), 'Creative': key.split('_')[1].title(), 'Visits': visits}
          for key, visits in channel_creative_data.items()]
     )
     
