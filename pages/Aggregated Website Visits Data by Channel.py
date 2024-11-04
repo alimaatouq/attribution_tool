@@ -15,10 +15,10 @@ def aggregate_website_visits(df):
     # Initialize dictionary to store the total visits by each channel
     channel_data = {}
     
-    # Iterate through columns, aggregating by channel
+    # Iterate through columns, aggregating by channel only for "spend" columns
     for col in df.columns:
-        # Skip the `solID` and `KPI_Website_Sessions` columns
-        if col in ['solID', 'KPI_Website_Sessions']:
+        # Skip columns that do not contain "spend" and the KPI_Website_Sessions column
+        if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
             continue
             
         # Extract the channel name (e.g., "TikTok" from "TikTok_Spend")
@@ -35,8 +35,9 @@ def aggregate_website_visits(df):
             channel_data[channel_name] += column_sum
     
     # Convert channel_data dictionary to a DataFrame for display
-    channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Total Visits'])
+    channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Total Spend'])
     return channel_df
+
 
 def main():
     st.title("Website Visits Aggregation by Channel")
