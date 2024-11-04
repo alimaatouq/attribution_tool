@@ -21,26 +21,27 @@ def clean_and_merge(spend_df, visits_df):
         lambda row: round(row['Spend'] / row['Visits'], 2) if row['Visits'] > 0 else 0, axis=1
     )
 
-    # Calculate Totals for Spend and Visits, and Average for Cost per Visit
+    # Sort by 'Cost per Visit' in ascending order
+    merged_df = merged_df.sort_values(by="Cost per Visit").reset_index(drop=True)
+
+    # Calculate totals for Spend and Visits, and Average for Cost per Visit
     total_spend = merged_df['Spend'].sum()
     total_visits = merged_df['Visits'].sum()
     avg_cost_per_visit = round(total_spend / total_visits, 2) if total_visits > 0 else 0
 
-    # Separate TOTAL row, then sort by 'Cost per Visit' in ascending order
-    merged_df_no_total = merged_df.sort_values(by="Cost per Visit").reset_index(drop=True)
-
-    # Create TOTAL row as a separate DataFrame
+    # Create a TOTAL row as a DataFrame and append it to the merged_df
     total_row = pd.DataFrame([{
         'Channel': 'TOTAL',
         'Spend': total_spend,
         'Visits': total_visits,
         'Cost per Visit': avg_cost_per_visit
     }])
+    
+    # Append TOTAL row to the end of the DataFrame
+    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
 
-    # Concatenate the sorted data with the TOTAL row at the end
-    merged_df_sorted = pd.concat([merged_df_no_total, total_row], ignore_index=True)
+    return merged_df
 
-    return merged_df_sorted
 
 
 def download_excel(df, sheet_name='Merged Data'):
