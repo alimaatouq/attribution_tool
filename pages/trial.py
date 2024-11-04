@@ -35,21 +35,22 @@ def consolidate_columns(df, filter_option):
     return consolidated_df, unique_columns_df
 
 def aggregate_spend_by_channel(df, consolidated_df):
+    # Temporary list to store each spend entry by channel
     spend_data = []
 
-    # Group consolidated spend columns by channel only
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
         match = re.match(r'([A-Za-z]+)', consolidated_name)
         if match:
             channel = match.group(1)
             
-            # Sum up all original columns that match this consolidated name pattern
             matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
-            spend_sum = df[matching_columns].sum(axis=1).sum()  # Sum across rows and then total
+            spend_sum = df[matching_columns].sum(axis=1).sum()
             
             spend_data.append({'Channel': channel, 'Spend': spend_sum})
 
-    spend_df = pd.DataFrame(spend_data)
+    # Convert spend data to DataFrame and group by channel, summing spend
+    spend_df = pd.DataFrame(spend_data).groupby('Channel', as_index=False).sum()
+
     return spend_df
 
 def summarize_channel_spend(spend_df):
@@ -65,19 +66,6 @@ def summarize_channel_spend(spend_df):
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
 
     return channel_summary
-
-def create_contribution_table(spend_df, channel_summary_df):
-    contribution_list = []
-    
-    for _, row in channel_summary_df.iterrows():
-        if row['Channel'] != 'Total':
-            channel = row['Channel']
-            contribution_percentage = int(row['Percentage Contribution'])
-            channel_count = spend_df[spend_df['Channel'] == channel].shape[0]
-            contribution_list.extend([f"{channel} - {contribution_percentage}%"] * channel_count)
-    
-    contribution_df = pd.DataFrame(contribution_list, columns=['Channel - Contribution'])
-    return contribution_df
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
