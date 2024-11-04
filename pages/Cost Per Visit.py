@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 
 def load_data(spend_file, visits_file):
-    # Load the first sheet in each uploaded Excel file
+    # Load the data from the uploaded files without specifying sheet names
     spend_df = pd.read_excel(spend_file)
     visits_df = pd.read_excel(visits_file)
     return spend_df, visits_df
@@ -16,10 +16,10 @@ def clean_and_merge(spend_df, visits_df):
     merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
     merged_df['Visits'] = pd.to_numeric(merged_df['Visits'], errors='coerce').fillna(0)
 
-    # Calculate Cost per Visit for each row
+    # Calculate Cost per Visit for each row and round to 2 decimal places
     merged_df['Cost per Visit'] = merged_df.apply(
-        lambda row: row['Spend'] / row['Visits'] if row['Visits'] > 0 else 0, axis=1
-    ).round(2)
+        lambda row: round(row['Spend'] / row['Visits'], 2) if row['Visits'] > 0 else 0, axis=1
+    )
 
     # Calculate Totals for Spend and Visits, and Average for Cost per Visit
     total_spend = merged_df['Spend'].sum()
