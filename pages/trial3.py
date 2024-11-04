@@ -15,6 +15,9 @@ def aggregate_website_visits(df):
     # Initialize dictionary to store visits by each channel and creative combination
     channel_creative_data = {}
     
+    # Display column names for debugging
+    st.write("Columns in DataFrame:", df.columns.tolist())
+    
     # Iterate through columns, aggregating by channel and creative for "spend" columns
     for col in df.columns:
         # Skip columns that do not contain "spend" and the KPI_Website_Sessions column
@@ -31,7 +34,11 @@ def aggregate_website_visits(df):
             key = f"{channel_name}_{creative_name}"
             if key not in channel_creative_data:
                 channel_creative_data[key] = 0
-                
+
+            # Show column data type and sample values for debugging
+            st.write(f"Column '{col}' - Data Type: {df[col].dtype}")
+            st.write(f"Sample data from '{col}':", df[col].head())
+            
             # Convert column to numeric, forcing non-numeric values to NaN, then sum, treating NaNs as zero
             column_sum = pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
             channel_creative_data[key] += column_sum
