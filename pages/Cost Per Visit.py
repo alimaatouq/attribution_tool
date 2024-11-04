@@ -3,7 +3,7 @@ import pandas as pd
 from io import BytesIO
 
 def load_data(spend_file, visits_file):
-    # Load each uploaded Excel file
+    # Load the uploaded files
     spend_df = pd.read_excel(spend_file)
     visits_df = pd.read_excel(visits_file)
     return spend_df, visits_df
