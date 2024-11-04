@@ -19,7 +19,8 @@ def consolidate_columns(df, filter_option):
     ordered_unique_columns = []
 
     for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+)', '', col)
+        # Remove any suffix like "_Spend" or "_1", "_2", etc.
+        new_col = re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE)
         consolidated_columns.append(new_col)
 
         if new_col not in seen_columns:
@@ -38,17 +39,19 @@ def aggregate_spend_by_channel_and_creative(df, consolidated_df):
     spend_data = []
     
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)  # Adjusted to capture both channel and creative
+        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)  # Capture both channel and creative
         if match:
             channel = match.group(1)
             creative = match.group(2) if match.group(2) else "General"
             
-            # If the creative contains "Exterior", group it under "Exterior" only
+            # Standardize creatives: if the creative matches "Exterior" or "Generic", consolidate to those labels
             if "exterior" in creative.lower():
                 creative = "Exterior"
+            elif "generic" in creative.lower():
+                creative = "Generic"
             
             # Find columns matching this consolidated name pattern
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
+            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE) == consolidated_name]
             spend_sum = df[matching_columns].sum(axis=1).sum()
             spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
     
