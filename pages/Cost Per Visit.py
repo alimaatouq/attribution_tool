@@ -4,40 +4,9 @@ from io import BytesIO
 
 def load_data(spend_file, visits_file):
     # Load the first sheet in each uploaded Excel file
-    spend_df = pd.read_excel(spend_file)  # Load first sheet by default
-    visits_df = pd.read_excel(visits_file)  # Load first sheet by default
+    spend_df = pd.read_excel(spend_file)
+    visits_df = pd.read_excel(visits_file)
     return spend_df, visits_df
-
-def merge_and_calculate(spend_df, visits_df):
-    # Merge the two DataFrames on the "Channel" column
-    merged_df = pd.merge(spend_df, visits_df, on="Channel", how="inner")
-
-    # Ensure Spend and Visits columns are numeric, converting non-numeric to NaN and filling NaN with 0
-    merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
-    merged_df['Visits'] = pd.to_numeric(merged_df['Visits'], errors='coerce').fillna(0)
-
-    # Calculate Cost per Visit and handle division by zero
-    merged_df['Cost per Visit'] = merged_df.apply(
-        lambda row: row['Spend'] / row['Visits'] if row['Visits'] > 0 else 0, axis=1
-    )
-    
-    # Format Spend and Visits as integers and Cost per Visit as a float with 2 decimal places
-    merged_df['Spend'] = merged_df['Spend'].astype(int)
-    merged_df['Visits'] = merged_df['Visits'].astype(int)
-    merged_df['Cost per Visit'] = merged_df['Cost per Visit'].round(2)
-    
-    return merged_df
-
-def download_excel(df, sheet_name='Merged Data'):
-    # Convert the DataFrame to an Excel file in memory
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name=sheet_name)
-        writer.close()
-    output.seek(0)
-    return output
-
-# Function definitions here (load_data, clean_and_merge, download_excel)
 
 def clean_and_merge(spend_df, visits_df):
     # Merge the two DataFrames on the "Channel" column
@@ -47,16 +16,11 @@ def clean_and_merge(spend_df, visits_df):
     merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
     merged_df['Visits'] = pd.to_numeric(merged_df['Visits'], errors='coerce').fillna(0)
 
-    # Calculate Cost per Visit only where Visits > 0 to avoid division by zero
+    # Calculate Cost per Visit for each row
     merged_df['Cost per Visit'] = merged_df.apply(
         lambda row: row['Spend'] / row['Visits'] if row['Visits'] > 0 else 0, axis=1
-    )
+    ).round(2)
 
-    # Format Spend and Visits as integers, round Cost per Visit to 2 decimals
-    merged_df['Spend'] = merged_df['Spend'].astype(int)
-    merged_df['Visits'] = merged_df['Visits'].astype(int)
-    merged_df['Cost per Visit'] = merged_df['Cost per Visit'].round(2)
-    
     # Calculate Totals for Spend and Visits, and Average for Cost per Visit
     total_spend = merged_df['Spend'].sum()
     total_visits = merged_df['Visits'].sum()
@@ -70,9 +34,19 @@ def clean_and_merge(spend_df, visits_df):
         'Cost per Visit': avg_cost_per_visit
     }])
     merged_df = pd.concat([merged_df, total_row], ignore_index=True)
+
+    # Sort by Channel to group all similar channels together
+    merged_df = merged_df.sort_values(by="Channel").reset_index(drop=True)
     
     return merged_df
 
+def download_excel(df, sheet_name='Merged Data'):
+    # Convert the DataFrame to an Excel file in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    return output
 
 def main():
     st.title("Channel Spend and Visits Summary with Cost per Visit")
@@ -91,7 +65,11 @@ def main():
         
         # Display the merged DataFrame with Cost per Visit in styled format
         st.subheader("Merged Data with Total Spend, Visits, and Average Cost per Visit")
-        st.write(merged_df.style.format({"Spend": "${:,.0f}", "Visits": "{:,.0f}", "Cost per Visit": "${:,.2f}"}))
+        st.write(merged_df.style.format({
+            "Spend": "${:,.0f}",
+            "Visits": "{:,.0f}",
+            "Cost per Visit": "${:,.2f}"
+        }))
 
         # Download button for the merged Excel file
         excel_data = download_excel(merged_df, sheet_name='Merged Data')
