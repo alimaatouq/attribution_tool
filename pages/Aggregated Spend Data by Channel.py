@@ -47,15 +47,16 @@ def aggregate_spend_by_channel(df, consolidated_df):
     return spend_df
 
 def create_final_output_table(spend_df):
-    # Create a version with TOTAL row for display
-    display_df = spend_df.copy()
-    total_spend = display_df['Spend'].sum()
-    display_df = pd.concat([display_df, pd.DataFrame([{'Channel': 'Total', 'Spend': total_spend}])], ignore_index=True)
+    # Make a copy of spend_df to avoid modifying the original data
+    final_df = spend_df.copy()
+
+    # Format the Spend column as currency
+    final_df['Spend'] = final_df['Spend'].apply(lambda x: f"${x:,.0f}")
+
+    # Reorder columns to show only Channel and Spend
+    final_df = final_df[['Channel', 'Spend']]
     
-    # Create a version without TOTAL row for download
-    download_df = spend_df.copy()
-    
-    return display_df, download_df
+    return final_df
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
