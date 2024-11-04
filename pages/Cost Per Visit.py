@@ -47,7 +47,6 @@ def download_excel(df, sheet_name='Merged Data'):
         df.to_excel(writer, index=False, sheet_name=sheet_name)
     output.seek(0)
     return output
-
 def main():
     st.title("Channel Spend and Visits Summary with Cost per Visit")
     st.write("Upload the Spend and Visits Excel files to merge them based on the channel and calculate Cost per Visit.")
@@ -59,10 +58,21 @@ def main():
     if spend_file and visits_file:
         # Load the data from both files
         spend_df, visits_df = load_data(spend_file, visits_file)
+
+        # Debugging: Display the loaded DataFrames
+        st.subheader("Spend Data (First 5 Rows)")
+        st.write(spend_df.head())
+        
+        st.subheader("Visits Data (First 5 Rows)")
+        st.write(visits_df.head())
         
         # Merge, clean data, and calculate Cost per Visit
         merged_df = clean_and_merge(spend_df, visits_df)
         
+        # Debugging: Display the merged DataFrame before adding totals
+        st.subheader("Merged Data Before Adding Totals")
+        st.write(merged_df)
+
         # Display the merged DataFrame with Cost per Visit in styled format
         st.subheader("Merged Data with Total Spend, Visits, and Average Cost per Visit")
         st.write(merged_df.style.format({
@@ -82,3 +92,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
