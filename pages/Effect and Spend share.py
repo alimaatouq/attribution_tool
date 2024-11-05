@@ -39,10 +39,10 @@ def download_excel(df, sheet_name='Sheet1'):
 
 # New page for consolidating based on 'rn' and analyzing
 def consolidate_and_analyze_page():
-    st.title("Consolidate and Analyze Spend Variables by Model")
+    st.title("Effect and Spend Share Data Prep Difference Calculater")
 
     # File uploader for CSV file
-    uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+    uploaded_file = st.file_uploader("Upload the pareto_aggregated CSV file", type="csv")
     
     if uploaded_file is not None:
         # Load CSV file
