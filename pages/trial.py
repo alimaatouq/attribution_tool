@@ -3,94 +3,90 @@ import pandas as pd
 import re
 from io import BytesIO
 
-def load_data(uploaded_file):
-    # Load the uploaded CSV file
-    return pd.read_csv(uploaded_file)
+def consolidate_columns(df, filter_option):
+    # Get initial column names and filter based on selected option
+    columns = df.columns
+    filtered_columns = []
 
-def filter_by_model(df, selected_model):
-    # Filter the DataFrame based on the selected model
-    return df[df['solID'] == selected_model]
-
-def aggregate_website_visits(df):
-    # Initialize dictionary to store the total visits by each channel
-    channel_data = {}
-    
-    # Iterate through columns, aggregating by channel only for "spend" columns
-    for col in df.columns:
-        # Skip columns that do not contain "spend" and the KPI_Website_Sessions column
-        if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
+    for col in columns:
+        # Check the filter option and match keywords accordingly
+        if filter_option == "Spend Variables" and "spend" not in col.lower():
             continue
-            
-        # Extract the channel name (e.g., "TikTok" from "TikTok_Spend")
-        channel = re.match(r'([A-Za-z]+)', col)
-        if channel:
-            channel_name = channel.group(1)
-            
-            # Initialize channel sum if not already in dictionary
-            if channel_name not in channel_data:
-                channel_data[channel_name] = 0
-                
-            # Convert column to numeric, forcing non-numeric values to NaN, then sum
-            column_sum = pd.to_numeric(df[col], errors='coerce').sum()
-            channel_data[channel_name] += column_sum
-    
-    # Convert channel_data dictionary to a DataFrame for display
-    channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Visits'])
-    
-    # Convert Visits to whole numbers (integers)
-    channel_df['Visits'] = channel_df['Visits'].round(0).astype(int)
-    
-    # Calculate the total visits across all channels
-    total_visits = channel_df['Visits'].sum()
-    
-    # Append a row for total visits to the DataFrame
-    total_row = pd.DataFrame([{'Channel': 'Total', 'Visits': total_visits}])
-    channel_df = pd.concat([channel_df, total_row], ignore_index=True)
-    
-    return channel_df
+        elif filter_option == "Impression Variables" and "impressions" not in col.lower():
+            continue
+        filtered_columns.append(col)
 
-def download_excel(df, sheet_name='Sheet1'):
+    # Consolidate column names by removing trailing numbers (e.g., "_1", "_2", etc.)
+    consolidated_columns = []
+    seen_columns = set()
+    ordered_unique_columns = []
+
+    for col in filtered_columns:
+        new_col = re.sub(r'(_\d+)', '', col)
+        consolidated_columns.append(new_col)
+
+        # Preserve order of first occurrences only
+        if new_col not in seen_columns:
+            ordered_unique_columns.append(new_col)
+            seen_columns.add(new_col)
+
+    # Create a DataFrame to show old and new column names for filtered columns only
+    consolidated_df = pd.DataFrame({
+        'Original Column Name': filtered_columns,
+        'Consolidated Column Name': consolidated_columns
+    })
+
+    # Convert ordered unique columns to DataFrame for download
+    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
+    return consolidated_df, unique_columns_df
+
+def download_excel(df):
+    # Save DataFrame to an Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        df.to_excel(writer, index=False, sheet_name='Consolidated Columns')
+        writer.close()
     output.seek(0)
     return output
 
 def main():
-    st.title("Website Visits Aggregation by Channel")
-    st.write("Upload the pareto_alldecomp_matrix CSV file, filter by model, and aggregate website visits by channel.")
+    st.title("Column Consolidation App")
+    st.write("Upload an Excel file to consolidate similar column names.")
 
     # File uploader
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    uploaded_file = st.file_uploader("Choose the Processed Data - Excel file", type="xlsx")
     
     if uploaded_file is not None:
-        # Load data
-        df = load_data(uploaded_file)
+        # Load the Excel file
+        df = pd.read_excel(uploaded_file)
 
-        # Model (solID) selection
-        models = df['solID'].unique()
-        selected_model = st.selectbox("Select Model (solID)", options=models)
+        # Filter options for selecting columns
+        filter_option = st.selectbox("Select Variable Type to Consolidate", 
+                                     options=["All Variables", "Spend Variables", "Impression Variables"])
 
-        # Filter data by selected model
-        filtered_df = filter_by_model(df, selected_model)
-        st.write(f"Data for Model {selected_model}:", filtered_df)
+        # Process the DataFrame based on selected filter
+        consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
 
-        # Aggregate website visits by channel, including the Total row
-        channel_visits_df_with_total = aggregate_website_visits(filtered_df)
-        st.subheader("Aggregated Website Visits by Channel with Total")
-        st.write(channel_visits_df_with_total)
+        # Display the consolidated column mapping and unique consolidated column names side by side
+        col1, col2 = st.columns(2)
 
-        # Exclude the Total row for the downloadable file
-        channel_visits_df_without_total = channel_visits_df_with_total[channel_visits_df_with_total['Channel'] != 'Total']
+        with col1:
+            st.subheader("Column Consolidation Mapping")
+            st.write(consolidated_df)
 
-        # Download aggregated data as Excel, without the Total row
-        excel_data = download_excel(channel_visits_df_without_total, sheet_name='Channel Visits')
+        with col2:
+            st.subheader("Ordered Consolidated Column Names")
+            st.write(unique_columns_df)
+
+        # Provide a download button for Excel
+        excel_data = download_excel(unique_columns_df)
         st.download_button(
-            label="Download Channel Visits as Excel (without Total)",
+            label="Download Ordered Consolidated Column Names as Excel",
             data=excel_data,
-            file_name="channel_visits_aggregation.xlsx",
+            file_name="ordered_consolidated_column_names.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
+# Run the main function
 if __name__ == "__main__":
     main()
