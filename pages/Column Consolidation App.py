@@ -45,7 +45,7 @@ def download_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Consolidated Columns')
-        writer.close()  # Use close() instead of save()
+        writer.close()
     output.seek(0)
     return output
 
@@ -54,7 +54,7 @@ def main():
     st.write("Upload an Excel file to consolidate similar column names.")
 
     # File uploader
-    uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
+    uploaded_file = st.file_uploader("Choose the Processed Data - Excel file", type="xlsx")
     
     if uploaded_file is not None:
         # Load the Excel file
@@ -67,13 +67,16 @@ def main():
         # Process the DataFrame based on selected filter
         consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
 
-        # Display the consolidated column mapping as a table
-        st.subheader("Column Consolidation Mapping")
-        st.write(consolidated_df)
+        # Display the consolidated column mapping and unique consolidated column names side by side
+        col1, col2 = st.columns(2)
 
-        # Display the unique consolidated column names in original order for easy copying
-        st.subheader("Ordered Consolidated Column Names")
-        st.write(unique_columns_df)
+        with col1:
+            st.subheader("Column Consolidation Mapping")
+            st.write(consolidated_df)
+
+        with col2:
+            st.subheader("Ordered Consolidated Column Names")
+            st.write(unique_columns_df)
 
         # Provide a download button for Excel
         excel_data = download_excel(unique_columns_df)
