@@ -71,7 +71,7 @@ def download_excel_with_formatting(df, sheet_name='Formatted Data'):
     return output
 
 def main():
-    st.title("Channel and Creative Spend and Visits Summary with Cost per Visit")
+    st.title("Cost Per Visit by Channel and Creative")
     st.write("Upload the Spend and Visits Excel files to merge them based on Channel and Creative, calculate CPV, and add a summary with formatting.")
 
     # File uploaders for the two Excel files
