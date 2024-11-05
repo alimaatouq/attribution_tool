@@ -3,87 +3,75 @@ import pandas as pd
 import re
 from io import BytesIO
 
-def consolidate_columns(df, filter_option):
-    # Get initial column names and filter based on selected option
-    columns = df.columns
-    filtered_columns = []
+# Helper function to consolidate and analyze based on 'rn' column for Spend variables only
+def consolidate_by_rn_spend(df):
+    # Filter rows where 'rn' column contains "Spend"
+    df = df[df['rn'].str.contains("Spend", case=False)]
 
-    for col in columns:
-        # Check the filter option and match keywords accordingly
-        if filter_option == "Spend Variables" and "spend" not in col.lower():
-            continue
-        elif filter_option == "Impression Variables" and "impressions" not in col.lower():
-            continue
-        filtered_columns.append(col)
+    # Remove trailing numbers and "_Spend" suffix from 'rn' values, and replace underscores with spaces
+    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+)?_Spend', '', x).replace('_', ' '))
 
-    # Consolidate column names by removing trailing numbers (e.g., "_1", "_2", etc.)
-    consolidated_columns = []
-    seen_columns = set()
-    ordered_unique_columns = []
+    # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
+    consolidated_df = df.groupby('rn').agg({
+        'spend_share': 'sum',
+        'effect_share': 'sum'
+    }).reset_index()
 
-    for col in filtered_columns:
-        new_col = re.sub(r'(_\d+)', '', col)
-        consolidated_columns.append(new_col)
+    # Calculate 'difference' column
+    consolidated_df['difference'] = consolidated_df['effect_share'] - consolidated_df['spend_share']
 
-        # Preserve order of first occurrences only
-        if new_col not in seen_columns:
-            ordered_unique_columns.append(new_col)
-            seen_columns.add(new_col)
+    # Reorder columns: 'rn', 'effect_share', 'spend_share', 'difference'
+    consolidated_df = consolidated_df[['rn', 'effect_share', 'spend_share', 'difference']]
 
-    # Create a DataFrame to show old and new column names for filtered columns only
-    consolidated_df = pd.DataFrame({
-        'Original Column Name': filtered_columns,
-        'Consolidated Column Name': consolidated_columns
-    })
+    # Sort by 'effect_share' in descending order, with the highest at the bottom
+    consolidated_df = consolidated_df.sort_values(by='effect_share', ascending=True).reset_index(drop=True)
 
-    # Convert ordered unique columns to DataFrame for download
-    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
-    return consolidated_df, unique_columns_df
+    return consolidated_df
 
-def download_excel(df):
-    # Save DataFrame to an Excel file in memory
+# Function to create a downloadable Excel file
+def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Consolidated Columns')
-        writer.close()
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
     output.seek(0)
     return output
 
+# Main function for the app
 def main():
-    st.title("Column Consolidation App")
-    st.write("Upload an Excel file to consolidate similar column names.")
+    st.title("Effect and Spend Share Data Prep Difference Calculator")
 
-    # File uploader
-    uploaded_file = st.file_uploader("Choose the Processed Data - Excel file", type="xlsx")
+    # File uploader for CSV file
+    uploaded_file = st.file_uploader("Upload the pareto_aggregated CSV file", type="csv")
     
     if uploaded_file is not None:
-        # Load the Excel file
-        df = pd.read_excel(uploaded_file)
+        # Load CSV file
+        df = pd.read_csv(uploaded_file)
 
-        # Filter options for selecting columns
-        filter_option = st.selectbox("Select Variable Type to Consolidate", 
-                                     options=["All Variables", "Spend Variables", "Impression Variables"])
+        # Ensure required columns are present
+        if 'solID' not in df.columns or 'rn' not in df.columns or 'spend_share' not in df.columns or 'effect_share' not in df.columns:
+            st.error("The uploaded file must contain 'solID', 'rn', 'spend_share', and 'effect_share' columns.")
+            return
 
-        # Process the DataFrame based on selected filter
-        consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
+        # Select solID to filter models
+        unique_sol_ids = df['solID'].unique()
+        selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
+        
+        # Filter DataFrame based on the selected solID model
+        filtered_df = df[df['solID'] == selected_model]
 
-        # Display the consolidated column mapping and unique consolidated column names side by side
-        col1, col2 = st.columns(2)
+        # Consolidate by 'rn' for Spend variables and calculate required fields
+        consolidated_df = consolidate_by_rn_spend(filtered_df)
 
-        with col1:
-            st.subheader("Column Consolidation Mapping")
-            st.write(consolidated_df)
+        # Display consolidated DataFrame
+        st.subheader("Consolidated Data")
+        st.write(consolidated_df)
 
-        with col2:
-            st.subheader("Ordered Consolidated Column Names")
-            st.write(unique_columns_df)
-
-        # Provide a download button for Excel
-        excel_data = download_excel(unique_columns_df)
+        # Download option for consolidated data
+        excel_data = download_excel(consolidated_df, sheet_name='Consolidated Data')
         st.download_button(
-            label="Download Ordered Consolidated Column Names as Excel",
+            label="Download Consolidated Data as Excel",
             data=excel_data,
-            file_name="ordered_consolidated_column_names.xlsx",
+            file_name="consolidated_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
