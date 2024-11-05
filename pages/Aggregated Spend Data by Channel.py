@@ -3,22 +3,16 @@ import pandas as pd
 import re
 from io import BytesIO
 
-def consolidate_columns(df, filter_option):
-    columns = df.columns
-    filtered_columns = []
-
-    for col in columns:
-        if filter_option == "Spend Variables" and "spend" not in col.lower():
-            continue
-        elif filter_option == "Impression Variables" and "impressions" not in col.lower():
-            continue
-        filtered_columns.append(col)
-
+def consolidate_spend_columns(df):
+    # Filter columns that contain "spend"
+    spend_columns = [col for col in df.columns if "spend" in col.lower()]
+    
     consolidated_columns = []
     seen_columns = set()
     ordered_unique_columns = []
 
-    for col in filtered_columns:
+    # Consolidate column names
+    for col in spend_columns:
         new_col = re.sub(r'([_-]\d+)', '', col)
         consolidated_columns.append(new_col)
 
@@ -27,7 +21,7 @@ def consolidate_columns(df, filter_option):
             seen_columns.add(new_col)
 
     consolidated_df = pd.DataFrame({
-        'Original Column Name': filtered_columns,
+        'Original Column Name': spend_columns,
         'Consolidated Column Name': consolidated_columns
     })
 
@@ -72,38 +66,35 @@ def main():
     
     if uploaded_file is not None:
         df = pd.read_excel(uploaded_file)
-        filter_option = st.selectbox("Select Variable Type to Consolidate", 
-                                     options=["All Variables", "Spend Variables", "Impression Variables"])
+        
+        # Consolidate spend columns only
+        consolidated_df, unique_columns_df = consolidate_spend_columns(df)
 
-        consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
+        # Aggregate spend data by channel
+        spend_df = aggregate_spend_by_channel(df, consolidated_df)
 
-        st.subheader("Column Consolidation Mapping")
-        st.write(consolidated_df)
+        # Get the final output tables with and without TOTAL row
+        final_display_df, final_download_df = create_final_output_table(spend_df)
 
-        st.subheader("Ordered Consolidated Column Names")
-        st.write(unique_columns_df)
+        # Display tables side by side
+        col1, col2 = st.columns(2)
 
-        if filter_option == "Spend Variables":
-            spend_df = aggregate_spend_by_channel(df, consolidated_df)
-
+        with col1:
             st.subheader("Aggregated Spend Data by Channel")
             st.write(spend_df)
 
-            # Get the final output tables with and without TOTAL row
-            final_display_df, final_download_df = create_final_output_table(spend_df)
-
-            # Display the table with TOTAL row
+        with col2:
             st.subheader("Final Output Table (with TOTAL row)")
             st.write(final_display_df)
 
-            # Prepare the version without TOTAL row for download
-            excel_data_final_output = download_excel(final_download_df, sheet_name='Final Output')
-            st.download_button(
-                label="Download Final Output Table as Excel",
-                data=excel_data_final_output,
-                file_name="final_output_table.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+        # Prepare the version without TOTAL row for download
+        excel_data_final_output = download_excel(final_download_df, sheet_name='Final Output')
+        st.download_button(
+            label="Download Final Output Table as Excel",
+            data=excel_data_final_output,
+            file_name="final_output_table.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 if __name__ == "__main__":
     main()
