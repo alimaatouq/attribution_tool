@@ -78,7 +78,7 @@ def download_excel(df, sheet_name='Sheet1'):
 # Main function for single-page app
 def main():
     st.title("Channel Spend Consolidation App")
-    st.write("Upload a CSV or Excel file to consolidate and analyze spend data.")
+    st.write("Upload a CSV or Excel file to consolidate and analyze spend data for a selected model.")
 
     # File uploader for both CSV and Excel files
     uploaded_file = st.file_uploader("Choose an Excel or CSV file", type=["xlsx", "csv"])
@@ -88,6 +88,14 @@ def main():
             df = pd.read_excel(uploaded_file)
         elif uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
+
+        # Filter by solID if present in the data
+        if 'solID' in df.columns:
+            unique_sol_ids = df['solID'].unique()
+            selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
+            df = df[df['solID'] == selected_model]
+        else:
+            st.warning("The uploaded file does not contain a 'solID' column.")
 
         # Consolidate columns with spend data only
         consolidated_df, unique_columns_df = consolidate_columns(df)
