@@ -66,7 +66,7 @@ def download_excel(df, sheet_name='Sheet1'):
 
 def main():
     st.title("Channel Spend Aggregation App")
-    st.write("Upload an Excel file to consolidate similar column names.")
+    st.write("Upload the Processed Data - Excel file to aggregate the Spend by each Channel.")
 
     uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
     
