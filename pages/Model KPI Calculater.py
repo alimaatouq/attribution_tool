@@ -77,7 +77,7 @@ def download_excel(df, sheet_name='Sheet1'):
 
 # Main function for single-page app
 def main():
-    st.title("Channel Visits Consolidation App")
+    st.title("Channel Visits Aggrehation App")
     st.write("Upload the pareto_alldecomp_matrix CSV or Excel file to consolidate and analyze visits data for a selected model.")
 
     # File uploader for both CSV and Excel files
