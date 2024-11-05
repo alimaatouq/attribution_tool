@@ -91,7 +91,7 @@ def download_excel(df, sheet_name='Sheet1'):
 
 def main():
     st.title("Spend Data Consolidation App")
-    st.write("Upload an Excel file to consolidate and analyze spend data by channel and creative.")
+    st.write("Upload the Processed Data Excel file to consolidate and analyze spend data by channel and creative.")
 
     # File uploader
     uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
