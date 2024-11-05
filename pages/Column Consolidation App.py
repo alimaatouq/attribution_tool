@@ -51,7 +51,7 @@ def download_excel(df):
 
 def main():
     st.title("Column Consolidation App")
-    st.write("Upload an Excel file to consolidate similar column names.")
+    st.write("Upload the Processed Data - Excel file to consolidate similar column names.")
 
     # File uploader
     uploaded_file = st.file_uploader("Choose the Processed Data - Excel file", type="xlsx")
