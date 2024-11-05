@@ -58,15 +58,14 @@ def download_excel(df, sheet_name='Sheet1'):
 
 def main():
     st.title("Website Visits Aggregation by Channel")
-    st.write("Upload a CSV file, filter by model, and aggregate website visits by channel.")
+    st.write("Upload the pareto_alldecomp_matrix CSV file, filter by model, and aggregate website visits by channel.")
 
     # File uploader
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
     
     if uploaded_file is not None:
-        # Load and display data
+        # Load data
         df = load_data(uploaded_file)
-        st.write("Data Preview:", df.head())
 
         # Model (solID) selection
         models = df['solID'].unique()
