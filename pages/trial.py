@@ -90,7 +90,7 @@ def download_excel(df, sheet_name='Sheet1'):
     return output
 
 def main():
-    st.title("Spend Data Consolidation App")
+    st.title("Share of Spends by Placements App")
     st.write("Upload the Processed Data Excel file to consolidate and analyze spend data by channel and creative.")
 
     # File uploader
