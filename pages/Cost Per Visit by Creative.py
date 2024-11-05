@@ -82,13 +82,6 @@ def main():
         # Load the data from both files
         spend_df, visits_df = load_data(spend_file, visits_file)
         
-        # Display the loaded DataFrames
-        st.subheader("Spend Data (First 5 Rows)")
-        st.write(spend_df.head())
-        
-        st.subheader("Visits Data (First 5 Rows)")
-        st.write(visits_df.head())
-
         # Merge, clean data, and calculate CPV with totals
         formatted_df = clean_and_merge(spend_df, visits_df)
         
