@@ -30,41 +30,41 @@ def consolidate_columns(df):
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
-# Function to aggregate spend data
-def aggregate_spend(df, consolidated_df):
-    spend_data = []
+# Function to aggregate visits data (previously spend data)
+def aggregate_visits(df, consolidated_df):
+    visits_data = []
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
         match = re.match(r'([A-Za-z]+)_([A-Za-z]+)', consolidated_name)
         if match:
             channel = match.group(1)
             creative = match.group(2)
             matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
-            spend_sum = df[matching_columns].sum(axis=1).sum()
-            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
+            visits_sum = df[matching_columns].sum(axis=1).sum()
+            visits_data.append({'Channel': channel, 'Creative': creative, 'Visits': visits_sum})
 
-    spend_df = pd.DataFrame(spend_data)
-    return spend_df
+    visits_df = pd.DataFrame(visits_data)
+    return visits_df
 
-# Function to summarize channel spend
-def summarize_channel_spend(spend_df):
-    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
-    total_spend = channel_summary['Spend'].sum()
-    channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
-    total_row = pd.DataFrame([{'Channel': 'Total', 'Spend': total_spend, 'Percentage Contribution': 100}])
+# Function to summarize channel visits
+def summarize_channel_visits(visits_df):
+    channel_summary = visits_df.groupby('Channel')['Visits'].sum().reset_index()
+    total_visits = channel_summary['Visits'].sum()
+    channel_summary['Percentage Contribution'] = ((channel_summary['Visits'] / total_visits) * 100).round(0).astype(int)
+    total_row = pd.DataFrame([{'Channel': 'Total', 'Visits': total_visits, 'Percentage Contribution': 100}])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
     return channel_summary
 
 # Function to create the final output table
-def create_final_output_table(spend_df, channel_summary_df):
-    final_df = spend_df.copy()
+def create_final_output_table(visits_df, channel_summary_df):
+    final_df = visits_df.copy()
     final_df['Channel - Contribution'] = final_df['Channel']
     for _, row in channel_summary_df.iterrows():
         channel = row['Channel']
         if channel != 'Total':
             contribution_percentage = int(row['Percentage Contribution'])
             final_df.loc[final_df['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
-    final_df['Spend'] = final_df['Spend'].apply(lambda x: f"${x:,.0f}")
-    final_df = final_df[['Channel - Contribution', 'Creative', 'Spend']]
+    final_df['Visits'] = final_df['Visits'].astype(int)
+    final_df = final_df[['Channel - Contribution', 'Creative', 'Visits']]
     return final_df
 
 # Function to create a downloadable Excel file
@@ -77,8 +77,8 @@ def download_excel(df, sheet_name='Sheet1'):
 
 # Main function for single-page app
 def main():
-    st.title("Channel Spend Consolidation App")
-    st.write("Upload a CSV or Excel file to consolidate and analyze spend data for a selected model.")
+    st.title("Channel Visits Consolidation App")
+    st.write("Upload a CSV or Excel file to consolidate and analyze visits data for a selected model.")
 
     # File uploader for both CSV and Excel files
     uploaded_file = st.file_uploader("Choose an Excel or CSV file", type=["xlsx", "csv"])
@@ -100,10 +100,10 @@ def main():
         # Consolidate columns with spend data only
         consolidated_df, unique_columns_df = consolidate_columns(df)
 
-        # Aggregate and summarize spend data
-        spend_df = aggregate_spend(df, consolidated_df)
-        channel_summary_df = summarize_channel_spend(spend_df)
-        final_output_df = create_final_output_table(spend_df, channel_summary_df)
+        # Aggregate and summarize visits data
+        visits_df = aggregate_visits(df, consolidated_df)
+        channel_summary_df = summarize_channel_visits(visits_df)
+        final_output_df = create_final_output_table(visits_df, channel_summary_df)
 
         # Display the final output table
         st.subheader("Final Output Table")
