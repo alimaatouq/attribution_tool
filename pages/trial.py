@@ -73,15 +73,19 @@ def main():
         # Aggregate spend data by channel
         spend_df = aggregate_spend_by_channel(df, consolidated_df)
 
-        st.subheader("Aggregated Spend Data by Channel")
-        st.write(spend_df)
-
         # Get the final output tables with and without TOTAL row
         final_display_df, final_download_df = create_final_output_table(spend_df)
 
-        # Display the table with TOTAL row
-        st.subheader("Final Output Table (with TOTAL row)")
-        st.write(final_display_df)
+        # Display tables side by side
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Aggregated Spend Data by Channel")
+            st.write(spend_df)
+
+        with col2:
+            st.subheader("Final Output Table (with TOTAL row)")
+            st.write(final_display_df)
 
         # Prepare the version without TOTAL row for download
         excel_data_final_output = download_excel(final_download_df, sheet_name='Final Output')
