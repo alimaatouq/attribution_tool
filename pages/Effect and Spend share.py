@@ -8,8 +8,8 @@ def consolidate_by_rn_spend(df):
     # Filter rows where 'rn' column contains "Spend"
     df = df[df['rn'].str.contains("Spend", case=False)]
 
-    # Remove trailing numbers from 'rn' values (e.g., Snap_InteriorOnly_2_Spend to Snap_InteriorOnly_Spend)
-    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+)(?=_Spend)', '', x))
+    # Remove trailing numbers and "_Spend" suffix from 'rn' values, and replace underscores with spaces
+    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+)?_Spend', '', x).replace('_', ' '))
 
     # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
     consolidated_df = df.groupby('rn').agg({
@@ -33,13 +33,12 @@ def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
-        writer.close()
     output.seek(0)
     return output
 
-# New page for consolidating based on 'rn' and analyzing
-def consolidate_and_analyze_page():
-    st.title("Effect and Spend Share Data Prep Difference Calculater")
+# Main function for the app
+def main():
+    st.title("Effect and Spend Share Data Prep & Difference Calculator")
 
     # File uploader for CSV file
     uploaded_file = st.file_uploader("Upload the pareto_aggregated CSV file", type="csv")
@@ -76,15 +75,6 @@ def consolidate_and_analyze_page():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
-# Main function to add navigation between pages
-def main():
-    st.sidebar.title("Navigation")
-    pages = {
-        "Consolidate and Analyze Spend Variables by Model": consolidate_and_analyze_page
-    }
-    
-    page_selection = st.sidebar.radio("Go to", list(pages.keys()))
-    pages[page_selection]()
-
+# Run the main function
 if __name__ == "__main__":
     main()
