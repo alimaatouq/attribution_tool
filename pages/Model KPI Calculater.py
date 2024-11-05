@@ -4,17 +4,11 @@ import re
 from io import BytesIO
 
 # Helper function to consolidate columns
-def consolidate_columns(df, filter_option):
-    columns = df.columns
-    filtered_columns = []
+def consolidate_columns(df):
+    # Filter columns that contain "spend"
+    filtered_columns = [col for col in df.columns if "spend" in col.lower()]
 
-    for col in columns:
-        if filter_option == "Spend Variables" and "spend" not in col.lower():
-            continue
-        elif filter_option == "Impression Variables" and "impressions" not in col.lower():
-            continue
-        filtered_columns.append(col)
-
+    # Consolidate column names by removing trailing numbers
     consolidated_columns = []
     seen_columns = set()
     ordered_unique_columns = []
@@ -27,6 +21,7 @@ def consolidate_columns(df, filter_option):
             ordered_unique_columns.append(new_col)
             seen_columns.add(new_col)
 
+    # Create a DataFrame to map original to consolidated names
     consolidated_df = pd.DataFrame({
         'Original Column Name': filtered_columns,
         'Consolidated Column Name': consolidated_columns
@@ -35,41 +30,41 @@ def consolidate_columns(df, filter_option):
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
-# Function to aggregate spend data
-def aggregate_spend(df, consolidated_df):
-    spend_data = []
+# Function to aggregate visits data (previously spend data)
+def aggregate_visits(df, consolidated_df):
+    visits_data = []
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
         match = re.match(r'([A-Za-z]+)_([A-Za-z]+)', consolidated_name)
         if match:
             channel = match.group(1)
             creative = match.group(2)
             matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
-            spend_sum = df[matching_columns].sum(axis=1).sum()
-            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
+            visits_sum = df[matching_columns].sum(axis=1).sum()
+            visits_data.append({'Channel': channel, 'Creative': creative, 'Visits': visits_sum})
 
-    spend_df = pd.DataFrame(spend_data)
-    return spend_df
+    visits_df = pd.DataFrame(visits_data)
+    return visits_df
 
-# Function to summarize channel spend
-def summarize_channel_spend(spend_df):
-    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
-    total_spend = channel_summary['Spend'].sum()
-    channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
-    total_row = pd.DataFrame([{'Channel': 'Total', 'Spend': total_spend, 'Percentage Contribution': 100}])
+# Function to summarize channel visits
+def summarize_channel_visits(visits_df):
+    channel_summary = visits_df.groupby('Channel')['Visits'].sum().reset_index()
+    total_visits = channel_summary['Visits'].sum()
+    channel_summary['Percentage Contribution'] = ((channel_summary['Visits'] / total_visits) * 100).round(0).astype(int)
+    total_row = pd.DataFrame([{'Channel': 'Total', 'Visits': total_visits, 'Percentage Contribution': 100}])
     channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
     return channel_summary
 
 # Function to create the final output table
-def create_final_output_table(spend_df, channel_summary_df):
-    final_df = spend_df.copy()
+def create_final_output_table(visits_df, channel_summary_df):
+    final_df = visits_df.copy()
     final_df['Channel - Contribution'] = final_df['Channel']
     for _, row in channel_summary_df.iterrows():
         channel = row['Channel']
         if channel != 'Total':
             contribution_percentage = int(row['Percentage Contribution'])
             final_df.loc[final_df['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
-    final_df['Spend'] = final_df['Spend'].apply(lambda x: f"${x:,.0f}")
-    final_df = final_df[['Channel - Contribution', 'Creative', 'Spend']]
+    final_df['Visits'] = final_df['Visits'].astype(int)
+    final_df = final_df[['Channel - Contribution', 'Creative', 'Visits']]
     return final_df
 
 # Function to create a downloadable Excel file
@@ -77,17 +72,16 @@ def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
-        writer.close()
     output.seek(0)
     return output
 
 # Main function for single-page app
 def main():
-    st.title("Model Selection and Column Consolidation App")
-    st.write("Upload a CSV or Excel file to consolidate column names and analyze selected model.")
+    st.title("Channel Visits Consolidation App")
+    st.write("Upload the pareto_alldecomp_matrix CSV or Excel file to consolidate and analyze visits data for a selected model.")
 
     # File uploader for both CSV and Excel files
-    uploaded_file = st.file_uploader("Choose an Excel or CSV file", type=["xlsx", "csv"])
+    uploaded_file = st.file_uploader("Choose pareto_alldecomp_matrix Excel or CSV file", type=["xlsx", "csv"])
     
     if uploaded_file is not None:
         if uploaded_file.name.endswith('.xlsx'):
@@ -95,43 +89,34 @@ def main():
         elif uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
 
-        # Select solID to filter models if solID column exists
+        # Filter by solID if present in the data
         if 'solID' in df.columns:
             unique_sol_ids = df['solID'].unique()
             selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
             df = df[df['solID'] == selected_model]
-            st.subheader(f"Filtered Data for Model: {selected_model}")
-            st.write(df)
         else:
             st.warning("The uploaded file does not contain a 'solID' column.")
 
-        # Select variable type for consolidation
-        filter_option = st.selectbox("Select Variable Type to Consolidate",
-                                     options=["All Variables", "Spend Variables", "Impression Variables"])
+        # Consolidate columns with spend data only
+        consolidated_df, unique_columns_df = consolidate_columns(df)
 
-        consolidated_df, unique_columns_df = consolidate_columns(df, filter_option)
-        st.subheader("Column Consolidation Mapping")
-        st.write(consolidated_df)
+        # Aggregate and summarize visits data
+        visits_df = aggregate_visits(df, consolidated_df)
+        channel_summary_df = summarize_channel_visits(visits_df)
+        final_output_df = create_final_output_table(visits_df, channel_summary_df)
 
-        st.subheader("Ordered Consolidated Column Names")
-        st.write(unique_columns_df)
+        # Display the final output table
+        st.subheader("Final Output Table")
+        st.write(final_output_df)
 
-        if filter_option == "Spend Variables":
-            spend_df = aggregate_spend(df, consolidated_df)
-            channel_summary_df = summarize_channel_spend(spend_df)
-            final_output_df = create_final_output_table(spend_df, channel_summary_df)
-
-            st.subheader("Final Output Table")
-            st.write(final_output_df)
-
-            excel_data_final_output = download_excel(final_output_df, sheet_name='Final Output')
-            st.download_button(
-                label="Download Final Output Table as Excel",
-                data=excel_data_final_output,
-                file_name="final_output_table.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+        # Download option for the final output
+        excel_data_final_output = download_excel(final_output_df, sheet_name='Final Output')
+        st.download_button(
+            label="Download Final Output Table as Excel",
+            data=excel_data_final_output,
+            file_name="final_output_table.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 if __name__ == "__main__":
     main()
-
