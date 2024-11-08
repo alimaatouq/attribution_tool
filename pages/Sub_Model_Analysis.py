@@ -15,11 +15,17 @@ def analyze_file(uploaded_file):
     # Load the Excel file into a DataFrame
     df = pd.read_excel(uploaded_file, engine='openpyxl')
 
-    # Identify submodels where all variables have non-zero coefficients
-    all_non_zero_submodels = df.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
+    # List of variables to ignore when checking for zero coefficients
+    ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly']
 
-    # Identify submodels with at least one zero-coefficient variable
-    submodels_with_zeros = df[df['coef'] == 0]
+    # Filter out the rows with the variables we want to ignore
+    df_filtered = df[~df['rn'].isin(ignore_vars)]
+
+    # Identify submodels where all relevant variables have non-zero coefficients
+    all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
+
+    # Identify submodels with at least one zero-coefficient variable (excluding ignored variables)
+    submodels_with_zeros = df_filtered[df_filtered['coef'] == 0]
 
     # Summarize zero-coefficient variables for each submodel
     summary = submodels_with_zeros.groupby('solID').agg(
@@ -41,13 +47,13 @@ def analyze_file(uploaded_file):
     )
 
     # Display results in Streamlit
-    st.subheader("Submodels where all variables have non-zero coefficients:")
+    st.subheader("Submodels where all relevant variables have non-zero coefficients:")
     if all_non_zero_submodels.empty:
-        st.write("No submodels found where all variables have non-zero coefficients.")
+        st.write("No submodels found where all relevant variables have non-zero coefficients.")
     else:
         st.write(all_non_zero_submodels['solID'].unique())
 
-    st.subheader("Summary of submodels with zero-coefficient variables:")
+    st.subheader("Summary of submodels with zero-coefficient variables (excluding ignored variables):")
     if summary.empty:
         st.write("No submodels with zero-coefficient variables found.")
     else:
