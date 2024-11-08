@@ -24,6 +24,28 @@ def analyze_file(uploaded_file):
     # Identify submodels where all relevant variables have non-zero coefficients
     all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
 
+    # Create a summary of submodels where all relevant variables have non-zero coefficients
+    if not all_non_zero_submodels.empty:
+        non_zero_summary = all_non_zero_submodels.groupby('solID').agg(
+            non_zero_count=('rn', 'count'),
+            total_spend_on_non_zeros=('total_spend', 'sum'),
+            non_zero_vars=('rn', lambda x: list(x)),
+            rsq_train_avg=('rsq_train', 'mean')
+        ).reset_index()
+
+        # Reorder columns to place rsq_train_avg after solID
+        non_zero_summary = non_zero_summary[['solID', 'rsq_train_avg', 'non_zero_count', 'total_spend_on_non_zeros', 'non_zero_vars']]
+
+        # Format total spend values with dollar sign and comma separators
+        non_zero_summary['total_spend_on_non_zeros'] = non_zero_summary['total_spend_on_non_zeros'].apply(
+            lambda x: f"${x:,.2f}"
+        )
+
+        # Sort by the number of non-zero variables (descending order for this case)
+        non_zero_summary = non_zero_summary.sort_values(by='non_zero_count', ascending=False)
+    else:
+        non_zero_summary = pd.DataFrame()
+
     # Identify submodels with at least one zero-coefficient variable (excluding ignored variables)
     submodels_with_zeros = df_filtered[df_filtered['coef'] == 0]
 
@@ -32,26 +54,26 @@ def analyze_file(uploaded_file):
         zero_count=('rn', 'count'),
         total_spend_on_zeros=('total_spend', 'sum'),
         zero_vars=('rn', lambda x: list(x)),
-        rsq_train_avg=('rsq_train', 'mean')  # Calculate the average rsq_train for each solID
+        rsq_train_avg=('rsq_train', 'mean')
     ).reset_index()
 
     # Reorder columns to place rsq_train_avg after solID
     summary = summary[['solID', 'rsq_train_avg', 'zero_count', 'total_spend_on_zeros', 'zero_vars']]
-
-    # Sort by the number of zero-coefficient variables (ascending order)
-    summary = summary.sort_values(by='zero_count', ascending=True)
 
     # Format total spend values with dollar sign and comma separators
     summary['total_spend_on_zeros'] = summary['total_spend_on_zeros'].apply(
         lambda x: f"${x:,.2f}"
     )
 
+    # Sort by the number of zero-coefficient variables (ascending order)
+    summary = summary.sort_values(by='zero_count', ascending=True)
+
     # Display results in Streamlit
-    st.subheader("Submodels where all relevant variables have non-zero coefficients:")
-    if all_non_zero_submodels.empty:
+    st.subheader("Summary of submodels where all relevant variables have non-zero coefficients:")
+    if non_zero_summary.empty:
         st.write("No submodels found where all relevant variables have non-zero coefficients.")
     else:
-        st.write(all_non_zero_submodels['solID'].unique())
+        st.dataframe(non_zero_summary)
 
     st.subheader("Summary of submodels with zero-coefficient variables (excluding ignored variables):")
     if summary.empty:
