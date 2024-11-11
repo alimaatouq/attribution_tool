@@ -16,7 +16,7 @@ def analyze_file(uploaded_file):
     df = pd.read_excel(uploaded_file, engine='openpyxl')
 
     # List of variables to ignore when checking for zero coefficients
-    ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly']
+    ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
 
     # Filter out the rows with the variables we want to ignore
     df_filtered = df[~df['rn'].isin(ignore_vars)]
