@@ -24,10 +24,11 @@ def analyze_file(uploaded_file):
     # Identify submodels where all relevant variables have non-zero coefficients
     all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
 
-    # Create a simplified summary with only solID and average rsq_train
+    # Create a simplified summary with solID, average rsq_train, and average decomp.rssd
     if not all_non_zero_submodels.empty:
         non_zero_summary = all_non_zero_submodels.groupby('solID').agg(
-            rsq_train_avg=('rsq_train', 'mean')
+            rsq_train_avg=('rsq_train', 'mean'),
+            decomp_rssd_avg=('decomp.rssd', 'mean')
         ).reset_index()
 
         # Sort by rsq_train_avg in descending order
@@ -43,11 +44,12 @@ def analyze_file(uploaded_file):
         zero_count=('rn', 'count'),
         total_spend_on_zeros=('total_spend', 'sum'),
         zero_vars=('rn', lambda x: list(x)),
-        rsq_train_avg=('rsq_train', 'mean')
+        rsq_train_avg=('rsq_train', 'mean'),
+        decomp_rssd_avg=('decomp.rssd', 'mean')
     ).reset_index()
 
-    # Reorder columns to place rsq_train_avg after solID
-    summary = summary[['solID', 'rsq_train_avg', 'zero_count', 'total_spend_on_zeros', 'zero_vars']]
+    # Reorder columns to place rsq_train_avg and decomp_rssd_avg after solID
+    summary = summary[['solID', 'rsq_train_avg', 'decomp_rssd_avg', 'zero_count', 'total_spend_on_zeros', 'zero_vars']]
 
     # Format total spend values with dollar sign and comma separators
     summary['total_spend_on_zeros'] = summary['total_spend_on_zeros'].apply(
