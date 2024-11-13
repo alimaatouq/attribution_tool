@@ -64,12 +64,3 @@ else:
     # Display the filtered DataFrame
     st.write(f"Showing {len(filtered_df)} result(s):")
     st.dataframe(filtered_df)
-
-    # Optionally, add a download button
-    csv = filtered_df.to_csv(index=False)
-    st.download_button(
-        label="📥 Download Filtered Results as CSV",
-        data=csv,
-        file_name="filtered_country_codes.csv",
-        mime="text/csv",
-    )
