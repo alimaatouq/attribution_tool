@@ -4,3 +4,5 @@ pandas
 pathlib
 regex
 xlsxwriter
+beautifulsoup4
+bs4
