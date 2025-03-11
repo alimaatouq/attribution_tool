@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # Streamlit App Title
 st.title("Actual vs Predicted Values")
@@ -20,15 +20,11 @@ if uploaded_file is not None:
     # Filter data for the selected solID
     filtered_df = df[df['solID'] == selected_solID]
 
-    # Plot the actual vs predicted values
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(filtered_df['ds'], filtered_df['dep_var'], label="Actual", marker='o')
-    ax.plot(filtered_df['ds'], filtered_df['depVarHat'], label="Predicted", marker='x')
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Values")
-    ax.set_title(f"Actual vs Predicted for Model {selected_solID}")
-    ax.legend()
-    plt.xticks(rotation=45)
-
+    # Create the plot using Plotly
+    fig = px.scatter(filtered_df, x='ds', y=['dep_var', 'depVarHat'], markers=True,
+                     labels={'value': "Values", 'ds': "Date"},
+                     title=f"Actual vs Predicted for Model {selected_solID}")
+    fig.update_traces(marker=dict(size=8))
+    
     # Display the plot
-    st.pyplot(fig)
+    st.plotly_chart(fig)
