@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import io
 
 # Streamlit App Title
 st.title("Actual vs Predicted Values")
@@ -38,9 +39,13 @@ if uploaded_file is not None:
     # Display the plot
     st.plotly_chart(fig)
     
-    # Button to download the plot
+    # Save the figure as an image and enable download
     file_name = f"{plot_title}.png".replace(" ", "_")
+    img_bytes = io.BytesIO()
+    fig.write_image(img_bytes, format="png")
+    img_bytes.seek(0)
+    
     st.download_button(label="Download Plot", 
-                       data=fig.to_image(format="png"), 
+                       data=img_bytes, 
                        file_name=file_name, 
                        mime="image/png")
