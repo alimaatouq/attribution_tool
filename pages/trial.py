@@ -3,54 +3,43 @@ import pandas as pd
 import re
 from io import BytesIO
 
-def consolidate_columns(df):
-    columns = df.columns
-    filtered_columns = [col for col in columns if "spend" in col.lower()]
-    
-    consolidated_columns = []
-    seen_columns = set()
-    ordered_unique_columns = []
-    
-    for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE)
-        consolidated_columns.append(new_col)
-        if new_col not in seen_columns:
-            ordered_unique_columns.append(new_col)
-            seen_columns.add(new_col)
-    
-    consolidated_df = pd.DataFrame({
-        'Original Column Name': filtered_columns,
-        'Consolidated Column Name': consolidated_columns
-    })
-    
-    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
-    return consolidated_df, unique_columns_df
+def load_data(uploaded_file):
+    return pd.read_csv(uploaded_file)
 
-def aggregate_spend_by_channel_and_creative(df, consolidated_df):
-    spend_data = []
+def filter_by_model(df, selected_model):
+    return df[df['solID'] == selected_model]
+
+def aggregate_website_metric(df, selected_kpi):
+    channel_creative_data = {}
     
-    for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)  # Capture both channel and creative
+    for col in df.columns:
+        if 'spend' not in col.lower() or col == selected_kpi:
+            continue
+            
+        match = re.match(r'([A-Za-z\s]+)_(.*?)(?:_\d+)?_Spend', col)
         if match:
-            channel = match.group(1)
-            creative = match.group(2) if match.group(2) else "General"
+            channel_name = match.group(1).strip().lower()
+            creative_name = match.group(2).strip().lower()
             
-            # Standardize creative names by removing numeric identifiers
-            creative = re.sub(r'\d+', '', creative)
-            
-            # Find columns matching this consolidated name pattern
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE) == consolidated_name]
-            spend_sum = df[matching_columns].sum(axis=1).sum()
-            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
-    
-    spend_df = pd.DataFrame(spend_data).groupby(['Channel', 'Creative'], as_index=False).sum()
-    return spend_df
+            key = f"{channel_name}_{creative_name}"
+            if key not in channel_creative_data:
+                channel_creative_data[key] = 0
 
-def create_final_output_table(spend_df):
-    display_df = spend_df.copy()
-    total_spend = display_df['Spend'].sum()
-    display_df = pd.concat([display_df, pd.DataFrame([{'Channel': 'Total', 'Creative': '', 'Spend': total_spend}])], ignore_index=True)
-    return display_df
+            column_sum = pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
+            channel_creative_data[key] += column_sum
+    
+    channel_creative_df = pd.DataFrame(
+        [{'Channel': key.split('_')[0].title(), 'Creative': key.split('_')[1].title(), 'Metric': visits}
+         for key, visits in channel_creative_data.items()]
+    )
+    
+    channel_creative_df['Metric'] = channel_creative_df['Metric'].round(0).astype(int)
+    
+    total_metric = channel_creative_df['Metric'].sum()
+    total_row = pd.DataFrame([{'Channel': 'Total', 'Creative': '', 'Metric': total_metric}])
+    channel_creative_df = pd.concat([channel_creative_df, total_row], ignore_index=True)
+    
+    return channel_creative_df
 
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
@@ -60,37 +49,34 @@ def download_excel(df, sheet_name='Sheet1'):
     return output
 
 def main():
-    st.title("Channel and Creative Spend Aggregation App")
-    st.write("Upload an Excel file to consolidate similar column names and aggregate spends by channel and creative.")
+    st.title("Website KPI Aggregation by Channel and Creative")
+    st.write("Upload a CSV file, filter by model, and aggregate website KPIs by channel and creative.")
 
-    uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
     
     if uploaded_file is not None:
-        df = pd.read_excel(uploaded_file)
+        df = load_data(uploaded_file)
+        st.write("Data Preview:", df.head())
+
+        models = df['solID'].unique()
+        selected_model = st.selectbox("Select Model (solID)", options=models)
+
+        filtered_df = filter_by_model(df, selected_model)
+        st.write(f"Data for Model {selected_model}:", filtered_df)
+
+        selected_kpi = st.selectbox("Select KPI", options=['KPI_Website_Sessions', 'KPI_Website_Conversions'])
         
-        consolidated_df, unique_columns_df = consolidate_columns(df)
+        channel_creative_metric_df_with_total = aggregate_website_metric(filtered_df, selected_kpi)
+        st.subheader("Aggregated Website KPI by Channel and Creative with Total")
+        st.write(channel_creative_metric_df_with_total)
 
-        st.subheader("Column Consolidation Mapping")
-        st.write(consolidated_df)
+        channel_creative_metric_df_without_total = channel_creative_metric_df_with_total[channel_creative_metric_df_with_total['Channel'] != 'Total']
 
-        st.subheader("Ordered Consolidated Column Names")
-        st.write(unique_columns_df)
-
-        spend_df = aggregate_spend_by_channel_and_creative(df, consolidated_df)
-
-        st.subheader("Aggregated Spend Data by Channel and Creative")
-        st.write(spend_df)
-
-        final_display_df = create_final_output_table(spend_df)
-
-        st.subheader("Final Output Table (with TOTAL row)")
-        st.write(final_display_df)
-
-        excel_data_final_output = download_excel(final_display_df, sheet_name='Final Output')
+        excel_data = download_excel(channel_creative_metric_df_without_total, sheet_name='Channel_Creative KPI')
         st.download_button(
-            label="Download Final Output Table as Excel",
-            data=excel_data_final_output,
-            file_name="Aggregated Spend Data by Channel and Creative.xlsx",
+            label="Download Channel and Creative KPI as Excel (without Total)",
+            data=excel_data,
+            file_name="channel_creative_kpi_aggregation.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
