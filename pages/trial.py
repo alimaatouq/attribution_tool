@@ -12,7 +12,7 @@ def consolidate_columns(df):
     ordered_unique_columns = []
     
     for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+)', '', col)
+        new_col = re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE)
         consolidated_columns.append(new_col)
         
         if new_col not in seen_columns:
@@ -37,10 +37,10 @@ def aggregate_visits(df, consolidated_df):
             channel = match.group(1)
             creative = match.group(2)
             
-            # Standardize creative names by removing numeric identifiers
-            creative = re.sub(r'\d+', '', creative)
+            # Standardize creative names by removing numeric identifiers and trailing '_Spend'
+            creative = re.sub(r'\d+|_Spend', '', creative, flags=re.IGNORECASE)
             
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
+            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE) == consolidated_name]
             visits_sum = df[matching_columns].sum(axis=1).sum()
             visits_data.append({'Channel': channel, 'Creative': creative, 'Visits': visits_sum})
     
