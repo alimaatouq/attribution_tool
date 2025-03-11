@@ -20,16 +20,19 @@ if uploaded_file is not None:
     # Filter data for the selected solID
     filtered_df = df[df['solID'] == selected_solID]
 
-    # Create a Plotly scatter plot
-    fig = px.scatter(filtered_df, x='ds', y=['dep_var', 'depVarHat'],
-                     labels={'ds': 'Date', 'value': 'Values'},
-                     title=f"Actual vs Predicted for Model {selected_solID}",
-                     markers=True)
+    # Reshape data for Plotly (long format)
+    melted_df = filtered_df.melt(id_vars=['ds'], value_vars=['dep_var', 'depVarHat'],
+                                 var_name='Type', value_name='Value')
+
+    # Create a Plotly scatter plot with markers
+    fig = px.scatter(melted_df, x='ds', y='Value', color='Type',
+                     labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
+                     title=f"Actual vs Predicted for Model {selected_solID}")
 
     # Update layout for better visualization
     fig.update_traces(marker=dict(size=8))
     fig.update_layout(xaxis_title="Date", yaxis_title="Values",
-                      legend_title="Legend", xaxis_tickangle=-45)
+                      xaxis_tickangle=-45)
 
     # Display the plot
     st.plotly_chart(fig)
