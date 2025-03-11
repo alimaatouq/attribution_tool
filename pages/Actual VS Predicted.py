@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import matplotlib.pyplot as plt
+import io
 
 # Streamlit App Title
 st.title("Actual vs Predicted Values")
@@ -26,9 +28,10 @@ if uploaded_file is not None:
     melted_df['Type'] = melted_df['Type'].replace({'dep_var': 'Actual', 'depVarHat': 'Predicted'})
 
     # Create a Plotly line chart with markers
+    plot_title = f"Actual vs Predicted for Model {selected_solID}"
     fig = px.line(melted_df, x='ds', y='Value', color='Type',
                   labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
-                  title=f"Actual vs Predicted for Model {selected_solID}", markers=True)
+                  title=plot_title, markers=True)
 
     # Update layout for better visualization
     fig.update_layout(xaxis_title="Date", yaxis_title="Values",
@@ -36,3 +39,24 @@ if uploaded_file is not None:
 
     # Display the plot
     st.plotly_chart(fig)
+    
+    # Save the figure using Matplotlib
+    file_name = f"{plot_title}.png".replace(" ", "_")
+    img_bytes = io.BytesIO()
+    plt.figure(figsize=(10, 5))
+    for label, data in melted_df.groupby("Type"):
+        plt.plot(data["ds"], data["Value"], marker='o', label=label)
+    plt.xlabel("Date")
+    plt.ylabel("Values")
+    plt.title(plot_title)
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_bytes, format="png")
+    img_bytes.seek(0)
+    
+    # Provide download button
+    st.download_button(label="Download Plot", 
+                       data=img_bytes, 
+                       file_name=file_name, 
+                       mime="image/png")
