@@ -1,42 +1,58 @@
 import streamlit as st
 import pandas as pd
+import re
 from io import BytesIO
 
-def load_data(spend_file, conversions_file):
-    spend_df = pd.read_excel(spend_file)
-    conversions_df = pd.read_excel(conversions_file)
-    return spend_df, conversions_df
-
-def clean_and_merge(spend_df, conversions_df):
-    merged_df = pd.merge(spend_df, conversions_df, on="Channel", how="inner")
-
-    merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
-    merged_df['Conversions'] = pd.to_numeric(merged_df['Conversions'], errors='coerce').fillna(0)
-
-    merged_df['Cost per Conversion'] = merged_df.apply(
-        lambda row: round(row['Spend'] / row['Conversions'], 2) if row['Conversions'] > 0 else 0, axis=1
-    )
-
-    total_spend = merged_df['Spend'].sum()
-    total_conversions = merged_df['Conversions'].sum()
-    avg_cost_per_conversion = round(total_spend / total_conversions, 2) if total_conversions > 0 else 0
-
-    total_row = pd.DataFrame([{
-        'Channel': 'TOTAL',
-        'Spend': total_spend,
-        'Conversions': total_conversions,
-        'Cost per Conversion': avg_cost_per_conversion
-    }])
-
-    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
-    merged_df_no_total = merged_df[merged_df['Channel'] != 'TOTAL']
-    total_row_df = merged_df[merged_df['Channel'] == 'TOTAL']
+def consolidate_columns(df):
+    columns = df.columns
+    filtered_columns = [col for col in columns if "spend" in col.lower()]
     
-    merged_df_sorted = pd.concat([merged_df_no_total.sort_values(by="Cost per Conversion"), total_row_df], ignore_index=True)
+    consolidated_columns = []
+    seen_columns = set()
+    ordered_unique_columns = []
+    
+    for col in filtered_columns:
+        new_col = re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE)
+        consolidated_columns.append(new_col)
+        if new_col not in seen_columns:
+            ordered_unique_columns.append(new_col)
+            seen_columns.add(new_col)
+    
+    consolidated_df = pd.DataFrame({
+        'Original Column Name': filtered_columns,
+        'Consolidated Column Name': consolidated_columns
+    })
+    
+    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
+    return consolidated_df, unique_columns_df
 
-    return merged_df_sorted
+def aggregate_spend_by_channel_and_creative(df, consolidated_df):
+    spend_data = []
+    
+    for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
+        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)  # Capture both channel and creative
+        if match:
+            channel = match.group(1)
+            creative = match.group(2) if match.group(2) else "General"
+            
+            # Standardize creative names by removing numeric identifiers
+            creative = re.sub(r'\d+', '', creative)
+            
+            # Find columns matching this consolidated name pattern
+            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE) == consolidated_name]
+            spend_sum = df[matching_columns].sum(axis=1).sum()
+            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
+    
+    spend_df = pd.DataFrame(spend_data).groupby(['Channel', 'Creative'], as_index=False).sum()
+    return spend_df
 
-def download_excel(df, sheet_name='Merged Data'):
+def create_final_output_table(spend_df):
+    display_df = spend_df.copy()
+    total_spend = display_df['Spend'].sum()
+    display_df = pd.concat([display_df, pd.DataFrame([{'Channel': 'Total', 'Creative': '', 'Spend': total_spend}])], ignore_index=True)
+    return display_df
+
+def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
@@ -44,39 +60,46 @@ def download_excel(df, sheet_name='Merged Data'):
     return output
 
 def main():
-    st.title("Channel Spend and Conversions Summary with Cost per Conversion")
-    st.write("Upload the Spend and Conversions Excel files to merge them based on the channel, calculate Cost per Conversion, and sort by Cost per Conversion.")
+    st.title("Channel and Creative Spend Aggregation App")
+    st.write("Upload an Excel file to consolidate similar column names and aggregate spends by channel and creative.")
 
-    spend_file = st.file_uploader("Upload Aggregated Spend Data by Channel", type="xlsx")
-    conversions_file = st.file_uploader("Upload Channel Conversions Aggregation", type="xlsx")
+    uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
     
-    if spend_file and conversions_file:
-        spend_df, conversions_df = load_data(spend_file, conversions_file)
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Spend Data (First 5 Rows)")
-            st.write(spend_df.head())
-        
-        with col2:
-            st.subheader("Conversions Data (First 5 Rows)")
-            st.write(conversions_df.head())
+        consolidated_df, unique_columns_df = consolidate_columns(df)
 
-        merged_df = clean_and_merge(spend_df, conversions_df)
-        
-        st.subheader("Merged Data with Total Spend, Conversions, and Average Cost per Conversion")
-        st.write(merged_df.style.format({
-            "Spend": "${:,.0f}",
-            "Conversions": "{:,.0f}",
-            "Cost per Conversion": "${:,.2f}"
-        }))
+        st.subheader("Column Consolidation Mapping")
+        st.write(consolidated_df)
 
-        excel_data = download_excel(merged_df, sheet_name='Merged Data')
+        st.subheader("Ordered Consolidated Column Names")
+        st.write(unique_columns_df)
+
+        spend_df = aggregate_spend_by_channel_and_creative(df, consolidated_df)
+
+        st.subheader("Aggregated Spend Data by Channel and Creative")
+        st.write(spend_df)
+
+        # Download button for the Aggregated Spend Data
+        excel_data_spend_df = download_excel(spend_df, sheet_name='Aggregated Spend Data')
         st.download_button(
-            label="Download Merged Data as Excel",
-            data=excel_data,
-            file_name="Cost Per Conversion.xlsx",
+            label="Download Aggregated Spend Data as Excel",
+            data=excel_data_spend_df,
+            file_name="Aggregated_Spend_Data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        final_display_df = create_final_output_table(spend_df)
+
+        st.subheader("Final Output Table (with TOTAL row)")
+        st.write(final_display_df)
+
+        excel_data_final_output = download_excel(final_display_df, sheet_name='Final Output')
+        st.download_button(
+            label="Download Final Output Table as Excel",
+            data=excel_data_final_output,
+            file_name="Final_Output_Table.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
