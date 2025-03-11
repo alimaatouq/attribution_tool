@@ -21,6 +21,9 @@ def aggregate_website_conversions(df):
             channel_name = match.group(1).strip().lower()
             creative_name = match.group(2).strip().lower()
             
+            # Standardize creative names by removing numeric identifiers
+            creative_name = re.sub(r'\d+', '', creative_name)
+            
             key = f"{channel_name}_{creative_name}"
             if key not in channel_creative_data:
                 channel_creative_data[key] = 0
