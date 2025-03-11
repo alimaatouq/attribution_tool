@@ -81,6 +81,15 @@ def main():
         st.subheader("Aggregated Spend Data by Channel and Creative")
         st.write(spend_df)
 
+        # Download button for the Aggregated Spend Data
+        excel_data_spend_df = download_excel(spend_df, sheet_name='Aggregated Spend Data')
+        st.download_button(
+            label="Download Aggregated Spend Data as Excel",
+            data=excel_data_spend_df,
+            file_name="Aggregated Spend Data by Channel and Creative.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
         final_display_df = create_final_output_table(spend_df)
 
         st.subheader("Final Output Table (with TOTAL row)")
@@ -90,7 +99,7 @@ def main():
         st.download_button(
             label="Download Final Output Table as Excel",
             data=excel_data_final_output,
-            file_name="Aggregated Spend Data by Channel and Creative.xlsx",
+            file_name="Aggregated Spend Data by Channel and Creative WITH Total.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
