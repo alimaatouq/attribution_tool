@@ -5,44 +5,46 @@ from io import BytesIO
 
 # Helper function to consolidate columns
 def consolidate_columns(df):
-    # Filter columns that contain "spend"
     filtered_columns = [col for col in df.columns if "spend" in col.lower()]
-
-    # Consolidate column names by removing trailing numbers
+    
     consolidated_columns = []
     seen_columns = set()
     ordered_unique_columns = []
-
+    
     for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+)', '', col)
+        new_col = re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE)
         consolidated_columns.append(new_col)
-
+        
         if new_col not in seen_columns:
             ordered_unique_columns.append(new_col)
             seen_columns.add(new_col)
-
-    # Create a DataFrame to map original to consolidated names
+    
     consolidated_df = pd.DataFrame({
         'Original Column Name': filtered_columns,
         'Consolidated Column Name': consolidated_columns
     })
-
+    
     unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
     return consolidated_df, unique_columns_df
 
-# Function to aggregate visits data (previously spend data)
+# Function to aggregate visits data
 def aggregate_visits(df, consolidated_df):
     visits_data = []
+    
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        match = re.match(r'([A-Za-z]+)_([A-Za-z]+)', consolidated_name)
+        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)
         if match:
             channel = match.group(1)
             creative = match.group(2)
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
+            
+            # Standardize creative names by removing numeric identifiers and trailing '_Spend'
+            creative = re.sub(r'\d+|_Spend', '', creative, flags=re.IGNORECASE)
+            
+            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE) == consolidated_name]
             visits_sum = df[matching_columns].sum(axis=1).sum()
             visits_data.append({'Channel': channel, 'Creative': creative, 'Visits': visits_sum})
-
-    visits_df = pd.DataFrame(visits_data)
+    
+    visits_df = pd.DataFrame(visits_data).groupby(['Channel', 'Creative'], as_index=False).sum()
     return visits_df
 
 # Function to summarize channel visits
@@ -58,11 +60,13 @@ def summarize_channel_visits(visits_df):
 def create_final_output_table(visits_df, channel_summary_df):
     final_df = visits_df.copy()
     final_df['Channel - Contribution'] = final_df['Channel']
+    
     for _, row in channel_summary_df.iterrows():
         channel = row['Channel']
         if channel != 'Total':
             contribution_percentage = int(row['Percentage Contribution'])
             final_df.loc[final_df['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
+    
     final_df['Visits'] = final_df['Visits'].astype(int)
     final_df = final_df[['Channel - Contribution', 'Creative', 'Visits']]
     return final_df
@@ -80,7 +84,6 @@ def main():
     st.title("Aggregation App for the Dependent Variable by Channel")
     st.write("Upload the pareto_alldecomp_matrix CSV or Excel file to consolidate and analyze visits data for a selected model.")
 
-    # File uploader for both CSV and Excel files
     uploaded_file = st.file_uploader("Choose pareto_alldecomp_matrix Excel or CSV file", type=["xlsx", "csv"])
     
     if uploaded_file is not None:
@@ -89,7 +92,6 @@ def main():
         elif uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
 
-        # Filter by solID if present in the data
         if 'solID' in df.columns:
             unique_sol_ids = df['solID'].unique()
             selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
@@ -97,24 +99,19 @@ def main():
         else:
             st.warning("The uploaded file does not contain a 'solID' column.")
 
-        # Consolidate columns with spend data only
         consolidated_df, unique_columns_df = consolidate_columns(df)
-
-        # Aggregate and summarize visits data
         visits_df = aggregate_visits(df, consolidated_df)
         channel_summary_df = summarize_channel_visits(visits_df)
         final_output_df = create_final_output_table(visits_df, channel_summary_df)
 
-        # Display the final output table
         st.subheader("Final Output Table")
         st.write(final_output_df)
 
-        # Download option for the final output
         excel_data_final_output = download_excel(final_output_df, sheet_name='Final Output')
         st.download_button(
             label="Download Final Output Table as Excel",
             data=excel_data_final_output,
-            file_name="final_output_table.xlsx",
+            file_name="KPI Calculater.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
