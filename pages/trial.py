@@ -76,7 +76,7 @@ def main():
         st.download_button(
             label="Download Merged Data as Excel",
             data=excel_data,
-            file_name="merged_channel_data.xlsx",
+            file_name="Cost Per Conversion.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
