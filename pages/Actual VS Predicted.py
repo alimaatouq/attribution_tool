@@ -20,9 +20,10 @@ if uploaded_file is not None:
     # Filter data for the selected solID
     filtered_df = df[df['solID'] == selected_solID]
 
-    # Reshape data for Plotly (long format)
+    # Reshape data for Plotly (long format) and rename legend values
     melted_df = filtered_df.melt(id_vars=['ds'], value_vars=['dep_var', 'depVarHat'],
                                  var_name='Type', value_name='Value')
+    melted_df['Type'] = melted_df['Type'].replace({'dep_var': 'Actual', 'depVarHat': 'Predicted'})
 
     # Create a Plotly line chart with markers
     fig = px.line(melted_df, x='ds', y='Value', color='Type',
