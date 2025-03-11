@@ -24,13 +24,12 @@ if uploaded_file is not None:
     melted_df = filtered_df.melt(id_vars=['ds'], value_vars=['dep_var', 'depVarHat'],
                                  var_name='Type', value_name='Value')
 
-    # Create a Plotly scatter plot with markers
-    fig = px.scatter(melted_df, x='ds', y='Value', color='Type',
-                     labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
-                     title=f"Actual vs Predicted for Model {selected_solID}")
+    # Create a Plotly line chart with markers
+    fig = px.line(melted_df, x='ds', y='Value', color='Type',
+                  labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
+                  title=f"Actual vs Predicted for Model {selected_solID}", markers=True)
 
     # Update layout for better visualization
-    fig.update_traces(marker=dict(size=8))
     fig.update_layout(xaxis_title="Date", yaxis_title="Values",
                       xaxis_tickangle=-45)
 
