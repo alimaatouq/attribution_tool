@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import matplotlib.pyplot as plt
 import io
 
 # Streamlit App Title
@@ -39,12 +40,22 @@ if uploaded_file is not None:
     # Display the plot
     st.plotly_chart(fig)
     
-    # Save the figure as an image and enable download
+    # Save the figure using Matplotlib
     file_name = f"{plot_title}.png".replace(" ", "_")
     img_bytes = io.BytesIO()
-    fig.write_image(img_bytes, format="png")
+    plt.figure(figsize=(10, 5))
+    for label, data in melted_df.groupby("Type"):
+        plt.plot(data["ds"], data["Value"], marker='o', label=label)
+    plt.xlabel("Date")
+    plt.ylabel("Values")
+    plt.title(plot_title)
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(img_bytes, format="png")
     img_bytes.seek(0)
     
+    # Provide download button
     st.download_button(label="Download Plot", 
                        data=img_bytes, 
                        file_name=file_name, 
