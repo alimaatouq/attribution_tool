@@ -82,7 +82,7 @@ def main():
         st.download_button(
             label="Download Formatted Data as Excel",
             data=excel_data,
-            file_name="formatted_channel_creative_data.xlsx",
+            file_name="Cost Per Conversion by Channel and Creative.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
