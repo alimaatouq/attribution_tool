@@ -20,11 +20,16 @@ if uploaded_file is not None:
     # Filter data for the selected solID
     filtered_df = df[df['solID'] == selected_solID]
 
-    # Create the plot using Plotly
-    fig = px.scatter(filtered_df, x='ds', y=['dep_var', 'depVarHat'], markers=True,
-                     labels={'value': "Values", 'ds': "Date"},
-                     title=f"Actual vs Predicted for Model {selected_solID}")
+    # Create a Plotly scatter plot
+    fig = px.scatter(filtered_df, x='ds', y=['dep_var', 'depVarHat'],
+                     labels={'ds': 'Date', 'value': 'Values'},
+                     title=f"Actual vs Predicted for Model {selected_solID}",
+                     markers=True)
+
+    # Update layout for better visualization
     fig.update_traces(marker=dict(size=8))
-    
+    fig.update_layout(xaxis_title="Date", yaxis_title="Values",
+                      legend_title="Legend", xaxis_tickangle=-45)
+
     # Display the plot
     st.plotly_chart(fig)
