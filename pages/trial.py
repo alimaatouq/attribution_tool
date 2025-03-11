@@ -1,86 +1,51 @@
 import streamlit as st
 import pandas as pd
-from io import BytesIO
-from openpyxl import load_workbook
+import plotly.express as px
 
-def convert_csv_to_excel(csv_file):
-    """Convert CSV to Excel format."""
-    df = pd.read_csv(csv_file)
-    excel_file = BytesIO()
-    df.to_excel(excel_file, index=False, engine='openpyxl', sheet_name='Sheet1')
-    excel_file.seek(0)
-    return excel_file
+# Streamlit App Title
+st.title("Actual vs Predicted Values")
 
-def analyze_file(uploaded_file):
-    # Load the Excel file into a DataFrame
-    df = pd.read_excel(uploaded_file, engine='openpyxl')
+# File uploader
+uploaded_file = st.file_uploader("Upload the pareto_alldecomp_matrix.csv file", type=["csv"])
 
-    # List of variables to ignore when checking for zero coefficients
-    ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
-
-    # Filter out the rows with the variables we want to ignore
-    df_filtered = df[~df['rn'].isin(ignore_vars)]
-
-    # Identify submodels where all relevant variables have non-zero coefficients
-    all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
-
-    # Create a simplified summary with solID, average rsq_train, and average decomp.rssd
-    if not all_non_zero_submodels.empty:
-        non_zero_summary = all_non_zero_submodels.groupby('solID').agg(
-            rsq_train_avg=('rsq_train', 'mean'),
-            decomp_rssd_avg=('decomp.rssd', 'mean')
-        ).reset_index()
-
-        # Sort by rsq_train_avg in descending order
-        non_zero_summary = non_zero_summary.sort_values(by='rsq_train_avg', ascending=False)
-    else:
-        non_zero_summary = pd.DataFrame()
-
-    # Identify submodels with at least one zero-coefficient variable (excluding ignored variables)
-    submodels_with_zeros = df_filtered[df_filtered['coef'] == 0]
-
-    # Summarize zero-coefficient variables for each submodel
-    summary = submodels_with_zeros.groupby('solID').agg(
-        zero_count=('rn', 'count'),
-        total_spend_on_zeros=('total_spend', 'sum'),
-        zero_vars=('rn', lambda x: list(x)),
+if uploaded_file is not None:
+    # Load the dataset
+    df = pd.read_csv(uploaded_file)
+    df['ds'] = pd.to_datetime(df['ds'])  # Ensure ds column is datetime
+    
+    # Load the model performance data
+    model_performance = df.groupby('solID').agg(
         rsq_train_avg=('rsq_train', 'mean'),
         decomp_rssd_avg=('decomp.rssd', 'mean')
     ).reset_index()
-
-    # Reorder columns to place rsq_train_avg and decomp_rssd_avg after solID
-    summary = summary[['solID', 'rsq_train_avg', 'decomp_rssd_avg', 'zero_count', 'total_spend_on_zeros', 'zero_vars']]
-
-    # Format total spend values with dollar sign and comma separators
-    summary['total_spend_on_zeros'] = summary['total_spend_on_zeros'].apply(
-        lambda x: f"${x:,.2f}"
-    )
-
-    # Sort by the number of zero-coefficient variables (ascending order)
-    summary = summary.sort_values(by='zero_count', ascending=True)
-
-    # Display results in Streamlit
-    st.subheader("Submodels where all relevant variables have non-zero coefficients (simplified):")
-    if non_zero_summary.empty:
-        st.write("No submodels found where all relevant variables have non-zero coefficients.")
-    else:
-        st.dataframe(non_zero_summary)
-
-    st.subheader("Summary of submodels with zero-coefficient variables (excluding ignored variables):")
-    if summary.empty:
-        st.write("No submodels with zero-coefficient variables found.")
-    else:
-        st.dataframe(summary)
-
-# Streamlit App UI
-st.title("Submodel Analysis App")
-
-# File uploader widget (supports CSV and Excel)
-uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["xlsx", "csv"])
-
-# Analyze the uploaded file if it is provided
-if uploaded_file:
-    if uploaded_file.name.endswith(".csv"):
-        # Convert CSV to Excel format
-        uploaded_file = convert_csv_to_excel(uploaded_file)
-    analyze_file(uploaded_file)
+    
+    # Find the best model: highest rsq_train, breaking ties with lowest decomp_rssd
+    best_model = model_performance.sort_values(by=['rsq_train_avg', 'decomp_rssd_avg'], 
+                                               ascending=[False, True]).iloc[0]['solID']
+    
+    # User input for selecting solID
+    selected_solID = st.text_input("Enter Model Number (solID) or leave blank to use the best model:", "")
+    
+    if not selected_solID:
+        selected_solID = best_model
+        st.write(f"Automatically selecting the best model: {selected_solID}")
+    
+    # Filter data for the selected solID
+    filtered_df = df[df['solID'] == selected_solID]
+    
+    # Reshape data for Plotly (long format) and rename legend values
+    melted_df = filtered_df.melt(id_vars=['ds'], value_vars=['dep_var', 'depVarHat'],
+                                 var_name='Type', value_name='Value')
+    melted_df['Type'] = melted_df['Type'].replace({'dep_var': 'Actual', 'depVarHat': 'Predicted'})
+    
+    # Create a Plotly line chart with markers
+    fig = px.line(melted_df, x='ds', y='Value', color='Type',
+                  labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
+                  title=f"Actual vs Predicted for Model {selected_solID}", markers=True)
+    
+    # Update layout for better visualization
+    fig.update_layout(xaxis_title="Date", yaxis_title="Values",
+                      xaxis_tickangle=-45)
+    
+    # Display the plot
+    st.plotly_chart(fig)
