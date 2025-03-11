@@ -77,7 +77,7 @@ def main():
         st.download_button(
             label="Download Channel and Creative Conversions as Excel (without Total)",
             data=excel_data,
-            file_name="channel_creative_conversions_aggregation.xlsx",
+            file_name="Aggregated Website Conversions by Channel and Creative.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
