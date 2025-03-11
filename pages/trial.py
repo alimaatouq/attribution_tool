@@ -1,62 +1,117 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import matplotlib.pyplot as plt
-import io
+import re
+from io import BytesIO
 
-# Streamlit App Title
-st.title("Actual vs Predicted Values")
+def consolidate_columns(df):
+    columns = df.columns
+    filtered_columns = []
 
-# File uploader
-uploaded_file = st.file_uploader("Upload the pareto_alldecomp_matrix.csv file", type=["csv"])
+    # Automatically selecting Spend Variables
+    for col in columns:
+        if "spend" in col.lower():
+            filtered_columns.append(col)
 
-if uploaded_file is not None:
-    # Load the dataset
-    df = pd.read_csv(uploaded_file)
-    df['ds'] = pd.to_datetime(df['ds'])  # Ensure ds column is datetime
+    consolidated_columns = []
+    seen_columns = set()
+    ordered_unique_columns = []
 
-    # User input for selecting solID
-    solID_list = df['solID'].unique()
-    selected_solID = st.selectbox("Select Model Number (solID):", solID_list)
+    for col in filtered_columns:
+        # Remove any suffix like "_Spend", "_1", "1_" etc.
+        new_col = re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE)
+        consolidated_columns.append(new_col)
 
-    # Filter data for the selected solID
-    filtered_df = df[df['solID'] == selected_solID]
+        if new_col not in seen_columns:
+            ordered_unique_columns.append(new_col)
+            seen_columns.add(new_col)
 
-    # Reshape data for Plotly (long format) and rename legend values
-    melted_df = filtered_df.melt(id_vars=['ds'], value_vars=['dep_var', 'depVarHat'],
-                                 var_name='Type', value_name='Value')
-    melted_df['Type'] = melted_df['Type'].replace({'dep_var': 'Actual', 'depVarHat': 'Predicted'})
+    consolidated_df = pd.DataFrame({
+        'Original Column Name': filtered_columns,
+        'Consolidated Column Name': consolidated_columns
+    })
 
-    # Create a Plotly line chart with markers
-    plot_title = f"Actual vs Predicted for Model {selected_solID}"
-    fig = px.line(melted_df, x='ds', y='Value', color='Type',
-                  labels={'ds': 'Date', 'Value': 'Values', 'Type': 'Legend'},
-                  title=plot_title, markers=True)
+    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
+    return consolidated_df, unique_columns_df
 
-    # Update layout for better visualization
-    fig.update_layout(xaxis_title="Date", yaxis_title="Values",
-                      xaxis_tickangle=-45)
-
-    # Display the plot
-    st.plotly_chart(fig)
+def aggregate_spend_by_channel_and_creative(df, consolidated_df):
+    spend_data = []
     
-    # Save the figure using Matplotlib
-    file_name = f"{plot_title}.png".replace(" ", "_")
-    img_bytes = io.BytesIO()
-    plt.figure(figsize=(10, 5))
-    for label, data in melted_df.groupby("Type"):
-        plt.plot(data["ds"], data["Value"], marker='o', label=label)
-    plt.xlabel("Date")
-    plt.ylabel("Values")
-    plt.title(plot_title)
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(img_bytes, format="png")
-    img_bytes.seek(0)
+    for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
+        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)  # Capture both channel and creative
+        if match:
+            channel = match.group(1)
+            creative = match.group(2) if match.group(2) else "General"
+            
+            # Standardize creatives: if the creative matches "Exterior" or "Generic", consolidate to those labels
+            if "exterior" in creative.lower():
+                creative = "Exterior"
+            elif "generic" in creative.lower():
+                creative = "Generic"
+            
+            # Find columns matching this consolidated name pattern
+            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend|^\d+_)', '', col, flags=re.IGNORECASE) == consolidated_name]
+            spend_sum = df[matching_columns].sum(axis=1).sum()
+            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
     
-    # Provide download button
-    st.download_button(label="Download Plot", 
-                       data=img_bytes, 
-                       file_name=file_name, 
-                       mime="image/png")
+    spend_df = pd.DataFrame(spend_data).groupby(['Channel', 'Creative'], as_index=False).sum()
+    return spend_df
+
+def create_final_output_table(spend_df):
+    # Create a version with TOTAL row for display
+    display_df = spend_df.copy()
+    total_spend = display_df['Spend'].sum()
+    display_df = pd.concat([display_df, pd.DataFrame([{'Channel': 'Total', 'Creative': '', 'Spend': total_spend}])], ignore_index=True)
+    
+    # Create a version without TOTAL row for download
+    download_df = spend_df.copy()
+    
+    return display_df, download_df
+
+def download_excel(df, sheet_name='Sheet1'):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    return output
+
+def main():
+    st.title("Channel and Creative Spend Aggregation App")
+    st.write("Upload an Excel file to consolidate similar column names and aggregate spends by channel and creative.")
+
+    uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
+    
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+        
+        # Automatically selecting Spend Variables
+        consolidated_df, unique_columns_df = consolidate_columns(df)
+
+        st.subheader("Column Consolidation Mapping")
+        st.write(consolidated_df)
+
+        st.subheader("Ordered Consolidated Column Names")
+        st.write(unique_columns_df)
+
+        spend_df = aggregate_spend_by_channel_and_creative(df, consolidated_df)
+
+        st.subheader("Aggregated Spend Data by Channel and Creative")
+        st.write(spend_df)
+
+        # Get the final output tables with and without TOTAL row
+        final_display_df, final_download_df = create_final_output_table(spend_df)
+
+        # Display the table with TOTAL row
+        st.subheader("Final Output Table (with TOTAL row)")
+        st.write(final_display_df)
+
+        # Prepare the version without TOTAL row for download
+        excel_data_final_output = download_excel(final_download_df, sheet_name='Final Output')
+        st.download_button(
+            label="Download Final Output Table as Excel",
+            data=excel_data_final_output,
+            file_name="final_output_table.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+if __name__ == "__main__":
+    main()
