@@ -90,7 +90,7 @@ def main():
         st.download_button(
             label="Download Final Output Table as Excel",
             data=excel_data_final_output,
-            file_name="final_output_table.xlsx",
+            file_name="Aggregated Spend Data by Channel and Creative.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
