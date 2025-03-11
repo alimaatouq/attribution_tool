@@ -1,41 +1,42 @@
 import streamlit as st
 import pandas as pd
-import re
 from io import BytesIO
 
-def load_data(uploaded_file):
-    return pd.read_csv(uploaded_file)
+def load_data(spend_file, conversions_file):
+    spend_df = pd.read_excel(spend_file)
+    conversions_df = pd.read_excel(conversions_file)
+    return spend_df, conversions_df
 
-def filter_by_model(df, selected_model):
-    return df[df['solID'] == selected_model]
+def clean_and_merge(spend_df, conversions_df):
+    merged_df = pd.merge(spend_df, conversions_df, on="Channel", how="inner")
 
-def aggregate_website_conversions(df):
-    channel_data = {}
-    
-    for col in df.columns:
-        if 'spend' not in col.lower() or col == 'KPI_Website_Conversions':
-            continue
-            
-        channel = re.match(r'([A-Za-z]+)', col)
-        if channel:
-            channel_name = channel.group(1)
-            
-            if channel_name not in channel_data:
-                channel_data[channel_name] = 0
-            
-            column_sum = pd.to_numeric(df[col], errors='coerce').sum()
-            channel_data[channel_name] += column_sum
-    
-    channel_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Conversions'])
-    channel_df['Conversions'] = channel_df['Conversions'].round(0).astype(int)
-    
-    total_conversions = channel_df['Conversions'].sum()
-    total_row = pd.DataFrame([{'Channel': 'Total', 'Conversions': total_conversions}])
-    channel_df = pd.concat([channel_df, total_row], ignore_index=True)
-    
-    return channel_df
+    merged_df['Spend'] = pd.to_numeric(merged_df['Spend'], errors='coerce').fillna(0)
+    merged_df['Conversions'] = pd.to_numeric(merged_df['Conversions'], errors='coerce').fillna(0)
 
-def download_excel(df, sheet_name='Sheet1'):
+    merged_df['Cost per Conversion'] = merged_df.apply(
+        lambda row: round(row['Spend'] / row['Conversions'], 2) if row['Conversions'] > 0 else 0, axis=1
+    )
+
+    total_spend = merged_df['Spend'].sum()
+    total_conversions = merged_df['Conversions'].sum()
+    avg_cost_per_conversion = round(total_spend / total_conversions, 2) if total_conversions > 0 else 0
+
+    total_row = pd.DataFrame([{
+        'Channel': 'TOTAL',
+        'Spend': total_spend,
+        'Conversions': total_conversions,
+        'Cost per Conversion': avg_cost_per_conversion
+    }])
+
+    merged_df = pd.concat([merged_df, total_row], ignore_index=True)
+    merged_df_no_total = merged_df[merged_df['Channel'] != 'TOTAL']
+    total_row_df = merged_df[merged_df['Channel'] == 'TOTAL']
+    
+    merged_df_sorted = pd.concat([merged_df_no_total.sort_values(by="Cost per Conversion"), total_row_df], ignore_index=True)
+
+    return merged_df_sorted
+
+def download_excel(df, sheet_name='Merged Data'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
@@ -43,31 +44,39 @@ def download_excel(df, sheet_name='Sheet1'):
     return output
 
 def main():
-    st.title("Website Conversions Aggregation by Channel")
-    st.write("Upload the pareto_alldecomp_matrix CSV file, filter by model, and aggregate website conversions by channel.")
+    st.title("Channel Spend and Conversions Summary with Cost per Conversion")
+    st.write("Upload the Spend and Conversions Excel files to merge them based on the channel, calculate Cost per Conversion, and sort by Cost per Conversion.")
 
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    spend_file = st.file_uploader("Upload Aggregated Spend Data by Channel", type="xlsx")
+    conversions_file = st.file_uploader("Upload Channel Conversions Aggregation", type="xlsx")
     
-    if uploaded_file is not None:
-        df = load_data(uploaded_file)
+    if spend_file and conversions_file:
+        spend_df, conversions_df = load_data(spend_file, conversions_file)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Spend Data (First 5 Rows)")
+            st.write(spend_df.head())
+        
+        with col2:
+            st.subheader("Conversions Data (First 5 Rows)")
+            st.write(conversions_df.head())
 
-        models = df['solID'].unique()
-        selected_model = st.selectbox("Select Model (solID)", options=models)
+        merged_df = clean_and_merge(spend_df, conversions_df)
+        
+        st.subheader("Merged Data with Total Spend, Conversions, and Average Cost per Conversion")
+        st.write(merged_df.style.format({
+            "Spend": "${:,.0f}",
+            "Conversions": "{:,.0f}",
+            "Cost per Conversion": "${:,.2f}"
+        }))
 
-        filtered_df = filter_by_model(df, selected_model)
-        st.write(f"Data for Model {selected_model}:", filtered_df)
-
-        channel_conversions_df_with_total = aggregate_website_conversions(filtered_df)
-        st.subheader("Aggregated Website Conversions by Channel with Total")
-        st.write(channel_conversions_df_with_total)
-
-        channel_conversions_df_without_total = channel_conversions_df_with_total[channel_conversions_df_with_total['Channel'] != 'Total']
-
-        excel_data = download_excel(channel_conversions_df_without_total, sheet_name='Channel Conversions')
+        excel_data = download_excel(merged_df, sheet_name='Merged Data')
         st.download_button(
-            label="Download Channel Conversions as Excel (without Total)",
+            label="Download Merged Data as Excel",
             data=excel_data,
-            file_name="channel_conversions_aggregation.xlsx",
+            file_name="merged_channel_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
