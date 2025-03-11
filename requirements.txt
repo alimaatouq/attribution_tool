@@ -6,3 +6,4 @@ regex
 xlsxwriter
 beautifulsoup4
 bs4
+matplotlib
