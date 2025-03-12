@@ -1,119 +1,55 @@
 import streamlit as st
 import pandas as pd
-import re
-from io import BytesIO
 
-# Helper function to consolidate columns
-def consolidate_columns(df):
-    filtered_columns = [col for col in df.columns if "spend" in col.lower()]
-    
-    consolidated_columns = []
-    seen_columns = set()
-    ordered_unique_columns = []
-    
-    for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE)
-        consolidated_columns.append(new_col)
-        
-        if new_col not in seen_columns:
-            ordered_unique_columns.append(new_col)
-            seen_columns.add(new_col)
-    
-    consolidated_df = pd.DataFrame({
-        'Original Column Name': filtered_columns,
-        'Consolidated Column Name': consolidated_columns
-    })
-    
-    unique_columns_df = pd.DataFrame({'Consolidated Column Names': ordered_unique_columns})
-    return consolidated_df, unique_columns_df
+# Streamlit app
+st.title("Hyperparameters Generator")
 
-# Function to aggregate visits data
-def aggregate_visits(df, consolidated_df):
-    visits_data = []
-    
-    for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        match = re.match(r'([A-Za-z]+)_(.*)', consolidated_name)
-        if match:
-            channel = match.group(1)
-            creative = match.group(2)
-            
-            # Standardize creative names by removing numeric identifiers and trailing '_Spend'
-            creative = re.sub(r'\d+|_Spend', '', creative, flags=re.IGNORECASE)
-            
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+|_Spend)', '', col, flags=re.IGNORECASE) == consolidated_name]
-            visits_sum = df[matching_columns].sum(axis=1).sum()
-            visits_data.append({'Channel': channel, 'Creative': creative, 'Visits': visits_sum})
-    
-    visits_df = pd.DataFrame(visits_data).groupby(['Channel', 'Creative'], as_index=False).sum()
-    return visits_df
+# Initialize session state for uploaded file if it doesn't exist
+if "uploaded_file" not in st.session_state:
+    st.session_state["uploaded_file"] = None
 
-# Function to summarize channel visits
-def summarize_channel_visits(visits_df):
-    channel_summary = visits_df.groupby('Channel')['Visits'].sum().reset_index()
-    total_visits = channel_summary['Visits'].sum()
-    channel_summary['Percentage Contribution'] = ((channel_summary['Visits'] / total_visits) * 100).round(0).astype(int)
-    total_row = pd.DataFrame([{'Channel': 'Total', 'Visits': total_visits, 'Percentage Contribution': 100}])
-    channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
-    return channel_summary
+# Use the uploaded file from session state if available
+if st.session_state["uploaded_file"] is None:
+    uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
+    if uploaded_file:
+        st.session_state["uploaded_file"] = uploaded_file
+else:
+    st.success("Using previously uploaded file.")
 
-# Function to create the final output table
-def create_final_output_table(visits_df, channel_summary_df):
-    final_df = visits_df.copy()
-    final_df['Channel - Contribution'] = final_df['Channel']
-    
-    for _, row in channel_summary_df.iterrows():
-        channel = row['Channel']
-        if channel != 'Total':
-            contribution_percentage = int(row['Percentage Contribution'])
-            final_df.loc[final_df['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
-    
-    final_df['Visits'] = final_df['Visits'].astype(int)
-    final_df = final_df[['Channel - Contribution', 'Creative', 'Visits']]
-    return final_df
+# Access the uploaded file from session state
+uploaded_file = st.session_state["uploaded_file"]
 
-# Function to create a downloadable Excel file
-def download_excel(df, sheet_name='Sheet1'):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name=sheet_name)
-    output.seek(0)
-    return output
+if uploaded_file:
+    try:
+        # Read Excel file
+        df = pd.read_excel(uploaded_file)
+        st.write(df.head())  # Example to display data
 
-# Main function for single-page app
-def main():
-    st.title("Aggregation App for the Dependent Variable by Channel")
-    st.write("Upload the pareto_alldecomp_matrix CSV or Excel file to consolidate and analyze visits data for a selected model.")
+        # Extract relevant spend variable names (columns containing 'Spend')
+        spend_variables = [col for col in df.columns if "Spend" in col]
 
-    uploaded_file = st.file_uploader("Choose pareto_alldecomp_matrix Excel or CSV file", type=["xlsx", "csv"])
-    
-    if uploaded_file is not None:
-        if uploaded_file.name.endswith('.xlsx'):
-            df = pd.read_excel(uploaded_file)
-        elif uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
+        # Define hyperparameter ranges
+        alpha_range = "c(0.5,3)"
+        gamma_range = "c(0.15,1)"
+        theta_range = "c(0.01, 0.9)"
 
-        if 'solID' in df.columns:
-            unique_sol_ids = df['solID'].unique()
-            selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
-            df = df[df['solID'] == selected_model]
-        else:
-            st.warning("The uploaded file does not contain a 'solID' column.")
+        # Build hyperparameters list
+        hyperparameters = "hyperparameters <- list(\n"
+        lines = []
 
-        consolidated_df, unique_columns_df = consolidate_columns(df)
-        visits_df = aggregate_visits(df, consolidated_df)
-        channel_summary_df = summarize_channel_visits(visits_df)
-        final_output_df = create_final_output_table(visits_df, channel_summary_df)
+        for var in spend_variables:
+            lines.append(f"  {var}_alphas = {alpha_range},")
+            lines.append(f"  {var}_gammas = {gamma_range},")
+            lines.append(f"  {var}_thetas = {theta_range},")
 
-        st.subheader("Final Output Table")
-        st.write(final_output_df)
+        # Combine all lines into a single string
+        hyperparameters += "\n".join(lines).rstrip(",")  # Remove trailing comma
+        hyperparameters += "\n)"
 
-        excel_data_final_output = download_excel(final_output_df, sheet_name='Final Output')
-        st.download_button(
-            label="Download Final Output Table as Excel",
-            data=excel_data_final_output,
-            file_name="final_output_table.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+        # Display the generated code block
+        st.code(hyperparameters, language='r')
 
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+else:
+    st.info("Please upload an Excel file to proceed.")
