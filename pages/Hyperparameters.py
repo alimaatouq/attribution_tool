@@ -4,6 +4,10 @@ import pandas as pd
 # Streamlit app
 st.title("Hyperparameters Generator")
 
+# Initialize session state for uploaded file if it doesn't exist
+if "uploaded_file" not in st.session_state:
+    st.session_state["uploaded_file"] = None
+
 # Use the uploaded file from session state if available
 if st.session_state["uploaded_file"] is None:
     uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
@@ -16,16 +20,13 @@ else:
 uploaded_file = st.session_state["uploaded_file"]
 
 if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-    st.write(df.head())  # Example to display data
-
-if uploaded_file:
     try:
         # Read Excel file
-        data = pd.read_excel(uploaded_file)
+        df = pd.read_excel(uploaded_file)
+        st.write(df.head())  # Example to display data
 
         # Extract relevant spend variable names (columns containing 'Spend')
-        spend_variables = [col for col in data.columns if "Spend" in col]
+        spend_variables = [col for col in df.columns if "Spend" in col]
 
         # Define hyperparameter ranges
         alpha_range = "c(0.5,3)"
