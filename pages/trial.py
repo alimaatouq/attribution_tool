@@ -10,6 +10,7 @@ def consolidate_by_rn_spend(df):
 
     # Standardize 'rn' values by removing numeric identifiers and '_Spend'
     df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+|_Spend)', '', x, flags=re.IGNORECASE).replace('_', ' '))
+    df['rn'] = df['rn'].apply(lambda x: re.sub(r'\s+', ' ', x).strip())  # Remove extra spaces
 
     # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
     consolidated_df = df.groupby('rn', as_index=False).agg({
