@@ -1,55 +1,78 @@
 import streamlit as st
 import pandas as pd
+import re
+from io import BytesIO
 
-# Streamlit app
-st.title("Hyperparameters Generator")
+# Helper function to consolidate and analyze based on 'rn' column for Spend variables only
+def consolidate_by_rn_spend(df):
+    # Filter rows where 'rn' column contains "Spend"
+    df = df[df['rn'].str.contains("Spend", case=False)]
 
-# Initialize session state for uploaded file if it doesn't exist
-if "uploaded_file" not in st.session_state:
-    st.session_state["uploaded_file"] = None
+    # Standardize 'rn' values by removing numeric identifiers and '_Spend'
+    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+|_Spend)', '', x, flags=re.IGNORECASE).replace('_', ' '))
 
-# Use the uploaded file from session state if available
-if st.session_state["uploaded_file"] is None:
-    uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
-    if uploaded_file:
-        st.session_state["uploaded_file"] = uploaded_file
-else:
-    st.success("Using previously uploaded file.")
+    # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
+    consolidated_df = df.groupby('rn', as_index=False).agg({
+        'spend_share': 'sum',
+        'effect_share': 'sum'
+    })
 
-# Access the uploaded file from session state
-uploaded_file = st.session_state["uploaded_file"]
+    # Calculate 'difference' column
+    consolidated_df['difference'] = consolidated_df['effect_share'] - consolidated_df['spend_share']
 
-if uploaded_file:
-    try:
-        # Read Excel file
-        df = pd.read_excel(uploaded_file)
-        st.write(df.head())  # Example to display data
+    # Sort by 'effect_share' in descending order
+    consolidated_df = consolidated_df.sort_values(by='effect_share', ascending=True).reset_index(drop=True)
 
-        # Extract relevant spend variable names (columns containing 'Spend')
-        spend_variables = [col for col in df.columns if "Spend" in col]
+    return consolidated_df
 
-        # Define hyperparameter ranges
-        alpha_range = "c(0.5,3)"
-        gamma_range = "c(0.15,1)"
-        theta_range = "c(0.01, 0.9)"
+# Function to create a downloadable Excel file
+def download_excel(df, sheet_name='Sheet1'):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    return output
 
-        # Build hyperparameters list
-        hyperparameters = "hyperparameters <- list(\n"
-        lines = []
+# Main function for the app
+def main():
+    st.title("Effect and Spend Share Data Prep & Difference Calculator")
 
-        for var in spend_variables:
-            lines.append(f"  {var}_alphas = {alpha_range},")
-            lines.append(f"  {var}_gammas = {gamma_range},")
-            lines.append(f"  {var}_thetas = {theta_range},")
+    # File uploader for CSV file
+    uploaded_file = st.file_uploader("Upload the pareto_aggregated CSV file", type="csv")
+    
+    if uploaded_file is not None:
+        # Load CSV file
+        df = pd.read_csv(uploaded_file)
 
-        # Combine all lines into a single string
-        hyperparameters += "\n".join(lines).rstrip(",")  # Remove trailing comma
-        hyperparameters += "\n)"
+        # Ensure required columns are present
+        required_columns = {'solID', 'rn', 'spend_share', 'effect_share'}
+        if not required_columns.issubset(df.columns):
+            st.error(f"The uploaded file must contain the following columns: {', '.join(required_columns)}")
+            return
 
-        # Display the generated code block
-        st.code(hyperparameters, language='r')
+        # Select solID to filter models
+        unique_sol_ids = df['solID'].unique()
+        selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
+        
+        # Filter DataFrame based on the selected solID model
+        filtered_df = df[df['solID'] == selected_model]
 
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-else:
-    st.info("Please upload an Excel file to proceed.")
+        # Consolidate by 'rn' for Spend variables and calculate required fields
+        consolidated_df = consolidate_by_rn_spend(filtered_df)
+
+        # Display consolidated DataFrame
+        st.subheader("Consolidated Data")
+        st.write(consolidated_df)
+
+        # Download option for consolidated data
+        excel_data = download_excel(consolidated_df, sheet_name='Consolidated Data')
+        st.download_button(
+            label="Download Consolidated Data as Excel",
+            data=excel_data,
+            file_name="consolidated_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+# Run the main function
+if __name__ == "__main__":
+    main()
