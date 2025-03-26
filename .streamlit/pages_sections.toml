@@ -7,8 +7,9 @@ icon = "🏠"
 # Section 1: Robyn Code
 [[pages]]
 name = "Section 1: Robyn Code"
-icon = "🔧"
 is_section = true
+#icon = "🔧"
+
 
 [[pages]]
 path = "pages/Path_Editor.py"
