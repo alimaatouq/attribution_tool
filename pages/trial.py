@@ -8,12 +8,16 @@ def consolidate_columns(df):
     filtered_columns = [col for col in df.columns if "spend" in col.lower()]
 
     # Consolidate column names by removing trailing numbers with underscores or hyphens
+    # OR numbers that are part of the creative name (like Banner1, Banner2)
     consolidated_columns = []
     seen_columns = set()
     ordered_unique_columns = []
 
     for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+)', '', col)
+        # First try to remove any trailing _\d+ or -\d+
+        new_col = re.sub(r'([_-]\d+)$', '', col)
+        # Then try to remove any \d+ that comes before _Spend
+        new_col = re.sub(r'(\d+)(?=_Spend)', '', new_col)
         consolidated_columns.append(new_col)
 
         # Preserve order of first occurrences only
