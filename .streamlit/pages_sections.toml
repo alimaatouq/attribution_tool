@@ -7,7 +7,7 @@ icon = "🏠"
 # Section 1: Robyn Code
 [[pages]]
 name = "Section 1: Robyn Code"
-icon = "🔧"
+icon = ""
 is_section = true
 
 
@@ -45,7 +45,7 @@ icon = "⚙️"
 # Section 2: Model Selection
 [[pages]]
 name = "Section 2: Model Selection"
-icon = "📈"
+icon = ""
 is_section = true
 
 [[pages]]
@@ -77,7 +77,7 @@ icon = "🎨"
 # Section 4: Website Visits
 [[pages]]
 name = "Section 4: Website Visits"
-icon = "👁️"
+icon = ""
 is_section = true
 
 [[pages]]
@@ -103,7 +103,7 @@ icon = "🧮"
 # Section 5: Conversions
 [[pages]]
 name = "Section 5: Conversions"
-icon = "🔄"
+icon = ""
 is_section = true
 
 [[pages]]
@@ -129,7 +129,7 @@ icon = "🧮"
 # Section 6: Presentation
 [[pages]]
 name = "Section 6: Presentation"
-icon = "📑"
+icon = ""
 is_section = true
 
 [[pages]]
@@ -150,7 +150,7 @@ icon = "⚖️"
 # Section 7: Trial
 [[pages]]
 name = "Trial"
-icon = "🧪"
+icon = ""
 is_section = true
 
 [[pages]]
