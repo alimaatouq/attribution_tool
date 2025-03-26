@@ -7,25 +7,35 @@ from io import BytesIO
 def consolidate_by_rn_spend(df):
     # Filter rows where 'rn' column contains "Spend"
     df = df[df['rn'].str.contains("Spend", case=False)]
-
-    # Remove trailing numbers and "_Spend" suffix from 'rn' values, and replace underscores with spaces
-    df['rn'] = df['rn'].apply(lambda x: re.sub(r'(_\d+)?_Spend', '', x).replace('_', ' '))
-
-    # Group by consolidated 'rn' and sum 'spend_share' and 'effect_share'
+    
+    # Create a function to standardize the names
+    def standardize_name(name):
+        # Remove "_Spend" suffix
+        name = re.sub(r'_Spend$', '', name)
+        # Remove any trailing numbers (with optional underscore)
+        name = re.sub(r'(_\d+|\d+)$', '', name)
+        # Replace underscores with spaces
+        name = name.replace('_', ' ')
+        return name.strip()
+    
+    # Apply standardization
+    df['rn'] = df['rn'].apply(standardize_name)
+    
+    # Group by standardized 'rn' and sum 'spend_share' and 'effect_share'
     consolidated_df = df.groupby('rn').agg({
         'spend_share': 'sum',
         'effect_share': 'sum'
     }).reset_index()
-
+    
     # Calculate 'difference' column
     consolidated_df['difference'] = consolidated_df['effect_share'] - consolidated_df['spend_share']
-
-    # Reorder columns: 'rn', 'effect_share', 'spend_share', 'difference'
+    
+    # Reorder columns
     consolidated_df = consolidated_df[['rn', 'effect_share', 'spend_share', 'difference']]
-
-    # Sort by 'effect_share' in descending order, with the highest at the bottom
+    
+    # Sort by 'effect_share' in descending order (highest at bottom)
     consolidated_df = consolidated_df.sort_values(by='effect_share', ascending=True).reset_index(drop=True)
-
+    
     return consolidated_df
 
 # Function to create a downloadable Excel file
@@ -71,7 +81,7 @@ def main():
         st.download_button(
             label="Download Consolidated Data as Excel",
             data=excel_data,
-            file_name="consolidated_data.xlsx",
+            file_name="Effect and Spend Share.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
