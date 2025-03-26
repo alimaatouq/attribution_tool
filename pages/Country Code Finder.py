@@ -39,7 +39,6 @@ def scrape_country_codes():
 
 
 # Title and Description
-st.title("🌍 Country Code Finder")
 st.write("This app dynamically fetches the ISO 3166-1 alpha-2 country codes. Enter a country name to filter the results.")
 
 # Scrape the data
