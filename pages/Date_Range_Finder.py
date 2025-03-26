@@ -4,25 +4,17 @@ import pandas as pd
 # Streamlit app
 st.title("Date Range Finder")
 
-# Use the uploaded file from session state if available
-if st.session_state["uploaded_file"] is None:
-    uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
-    if uploaded_file:
-        st.session_state["uploaded_file"] = uploaded_file
-else:
-    st.success("Using previously uploaded file.")
-
-# Access the uploaded file from session state
-uploaded_file = st.session_state["uploaded_file"]
+# File uploader - no session state used
+uploaded_file = st.file_uploader("Upload your Processed Data Excel file", type=["xlsx"])
 
 if uploaded_file:
+    # Display the uploaded file preview
     df = pd.read_excel(uploaded_file)
-    st.write(df.head())  # Example to display data
+    st.write("File preview:")
+    st.write(df.head())
 
-
-if uploaded_file:
-    # Read the Excel file
     try:
+        # Read the Excel file again for processing (or you could reuse df)
         data = pd.read_excel(uploaded_file)
 
         # Ensure there's a 'Date' column and parse dates
