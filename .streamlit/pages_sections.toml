@@ -6,7 +6,7 @@ icon = "🏠"
 
 # Section 1: Robyn Code
 [[pages]]
-name = "Robyn Code"
+name = "Section 1: Robyn Code"
 icon = "🔧"
 is_section = true
 
@@ -16,12 +16,12 @@ name = "Path Editor"
 icon = "🗂️"
 
 [[pages]]
-path = "pages/Column_Consolidation_App.py"
+path = "pages/Column Consolidation App.py"
 name = "Column Consolidation"
 icon = "📊"
 
 [[pages]]
-path = "pages/Country_Code_Finder.py"
+path = "pages/Country Code Finder.py"
 name = "Country Code Finder"
 icon = "🌍"
 
@@ -32,7 +32,7 @@ icon = "📅"
 
 [[pages]]
 path = "pages/Paid_Media_Spends_Vars.py"
-name = "Paid Media Spends"
+name = "Paid Media Spends Variables"
 icon = "💸"
 
 [[pages]]
@@ -42,7 +42,7 @@ icon = "⚙️"
 
 # Section 2: Model Selection
 [[pages]]
-name = "Model Selection"
+name = "Section 2: Model Selection"
 icon = "📈"
 is_section = true
 
@@ -52,96 +52,96 @@ name = "Sub Model Analysis"
 icon = "🔍"
 
 [[pages]]
-path = "pages/Actual_VS_Predicted.py"
+path = "pages/Actual VS Predicted.py"
 name = "Actual vs Predicted"
 icon = "📉"
 
 # Section 3: Spends
 [[pages]]
-name = "Spends"
+name = "Section 3: Spends"
 icon = "💰"
 is_section = true
 
 [[pages]]
-path = "pages/Aggregated_Spend_Data_by_Channel.py"
+path = "pages/Aggregated Spend Data by Channel.py"
 name = "Spends by Channel"
 icon = "📊"
 
 [[pages]]
-path = "pages/Spends_by_creative.py"
+path = "pages/Spends by creative.py"
 name = "Spends by Creative"
 icon = "🎨"
 
 # Section 4: Website Visits
 [[pages]]
-name = "Website Visits"
+name = "Section 4: Website Visits"
 icon = "👁️"
 is_section = true
 
 [[pages]]
-path = "pages/Aggregated_Website_Visits_Data_by_Channel.py"
+path = "pages/Aggregated Website Visits Data by Channel.py"
 name = "Visits by Channel"
 icon = "🚪"
 
 [[pages]]
-path = "pages/Website_visit_by_creative.py"
+path = "pages/Website visit by creative.py"
 name = "Visits by Creative"
 icon = "🖼️"
 
 [[pages]]
-path = "pages/Cost_Per_Visit_by_Creative.py"
+path = "pages/Cost Per Visit by Creative.py"
 name = "CPV by Creative"
 icon = "💵"
 
 [[pages]]
-path = "pages/Cost_Per_Visit.py"
+path = "pages/Cost Per Visit.py"
 name = "Cost Per Visit"
 icon = "🧮"
 
 # Section 5: Conversions
 [[pages]]
-name = "Conversions"
+name = "Section 5: Conversions"
 icon = "🔄"
 is_section = true
 
 [[pages]]
-path = "pages/Aggregated_Website_Conversions_Data_by_Channel.py"
+path = "pages/Aggregated Website Conversions Data by Channel.py"
 name = "Conversions by Channel"
 icon = "📈"
 
 [[pages]]
-path = "pages/Website_conversions_by_creative.py"
+path = "pages/Website conversions by creative.py"
 name = "Conversions by Creative"
 icon = "🖌️"
 
 [[pages]]
-path = "pages/Cost_Per_Conversion_by_Creative.py"
+path = "pages/Cost Per Conversion by Creative.py"
 name = "CPC by Creative"
 icon = "💲"
 
 [[pages]]
-path = "pages/Cost_Per_Conversion.py"
+path = "pages/Cost Per Conversion.py"
 name = "Cost Per Conversion"
 icon = "🧮"
 
 # Section 6: Presentation
 [[pages]]
-name = "Presentation"
+name = "Section 6: Presentation"
 icon = "📑"
 is_section = true
 
 [[pages]]
-path = "pages/Share_of_spends_by_placements.py"
+path = "pages/Share of spends by placements.py"
 name = "Share of Spends"
 icon = "📋"
 
 [[pages]]
-path = "pages/Model_KPI_Calculater.py"
+path = "pages/Model KPI Calculater.py"
 name = "Model KPI Calculator"
 icon = "🧮"
 
 [[pages]]
-path = "pages/Effect_and_Spend_share.py"
+path = "pages/Effect and Spend share.py"
 name = "Effect & Spend Share"
 icon = "⚖️"
 
