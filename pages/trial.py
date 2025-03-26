@@ -3,101 +3,42 @@ import pandas as pd
 import re
 from io import BytesIO
 
-def consolidate_columns(df):
-    # Filter columns to include only "spend" variables
-    filtered_columns = [col for col in df.columns if "spend" in col.lower()]
+# Helper function to consolidate and analyze based on 'rn' column for Spend variables only
+def consolidate_by_rn_spend(df):
+    # Filter rows where 'rn' column contains "Spend"
+    df = df[df['rn'].str.contains("Spend", case=False)]
     
-    # Create a mapping of original columns to consolidated names
-    column_mapping = {}
-    base_names = set()
+    # Create a function to standardize the names
+    def standardize_name(name):
+        # Remove "_Spend" suffix
+        name = re.sub(r'_Spend$', '', name)
+        # Remove any trailing numbers (with optional underscore)
+        name = re.sub(r'(_\d+|\d+)$', '', name)
+        # Replace underscores with spaces
+        name = name.replace('_', ' ')
+        return name.strip()
     
-    for col in filtered_columns:
-        # Remove any trailing numbers (with optional underscore/dash prefix)
-        # Also handles cases where number is in the middle (DisplayBanner1)
-        base_name = re.sub(r'(\d+)(?=_Spend|$)', '', col)
-        base_name = re.sub(r'([_-]\d+)(?=_Spend|$)', '', base_name)
-        
-        # Standardize the name format
-        base_name = base_name.rstrip('_').lower()
-        column_mapping[col] = base_name
-        base_names.add(base_name)
+    # Apply standardization
+    df['rn'] = df['rn'].apply(standardize_name)
     
-    # Create consolidated dataframe
-    consolidated_df = pd.DataFrame({
-        'Original Column Name': list(column_mapping.keys()),
-        'Consolidated Column Name': list(column_mapping.values())
-    })
+    # Group by standardized 'rn' and sum 'spend_share' and 'effect_share'
+    consolidated_df = df.groupby('rn').agg({
+        'spend_share': 'sum',
+        'effect_share': 'sum'
+    }).reset_index()
+    
+    # Calculate 'difference' column
+    consolidated_df['difference'] = consolidated_df['effect_share'] - consolidated_df['spend_share']
+    
+    # Reorder columns
+    consolidated_df = consolidated_df[['rn', 'effect_share', 'spend_share', 'difference']]
+    
+    # Sort by 'effect_share' in descending order (highest at bottom)
+    consolidated_df = consolidated_df.sort_values(by='effect_share', ascending=True).reset_index(drop=True)
     
     return consolidated_df
 
-def aggregate_spend(df, consolidated_df):
-    spend_data = []
-    
-    # Create a mapping from original to consolidated names
-    column_map = dict(zip(
-        consolidated_df['Original Column Name'],
-        consolidated_df['Consolidated Column Name']
-    ))
-    
-    # Group by consolidated names and sum
-    for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        # Get all original columns that map to this consolidated name
-        original_columns = [col for col, name in column_map.items() 
-                          if name == consolidated_name]
-        
-        # Calculate total spend
-        total_spend = df[original_columns].sum().sum()
-        
-        # Parse channel and creative from consolidated name
-        parts = re.split(r'_|(?<=[a-z])(?=[A-Z])', consolidated_name)
-        if len(parts) >= 2:
-            channel = parts[0].title()  # Capitalize first letter
-            creative = '_'.join(parts[1:-1]) if len(parts) > 2 else parts[1]
-            creative = creative.title()
-            
-            spend_data.append({
-                'Channel': channel,
-                'Creative': creative,
-                'Spend': total_spend
-            })
-    
-    spend_df = pd.DataFrame(spend_data)
-    return spend_df
-
-def summarize_channel_spend(spend_df):
-    # Calculate total spend by channel
-    channel_summary = spend_df.groupby('Channel')['Spend'].sum().reset_index()
-    total_spend = channel_summary['Spend'].sum()
-    
-    # Calculate percentage contribution for each channel, rounded to nearest whole number
-    channel_summary['Percentage Contribution'] = ((channel_summary['Spend'] / total_spend) * 100).round(0).astype(int)
-
-    # Add a row for the total spend
-    total_row = pd.DataFrame([{
-        'Channel': 'Total',
-        'Spend': total_spend,
-        'Percentage Contribution': 100
-    }])
-    channel_summary = pd.concat([channel_summary, total_row], ignore_index=True)
-
-    return channel_summary
-
-def create_final_output_table(spend_df, channel_summary_df):
-    final_df = spend_df.copy()
-    final_df['Channel - Contribution'] = final_df['Channel']
-    
-    for _, row in channel_summary_df.iterrows():
-        channel = row['Channel']
-        if channel != 'Total':
-            contribution_percentage = int(row['Percentage Contribution'])
-            final_df.loc[final_df['Channel'] == channel, 'Channel - Contribution'] = f"{channel} - {contribution_percentage}%"
-
-    # Format the Spend column as numbers
-    final_df['Spend'] = final_df['Spend'].apply(lambda x: f"{x:,.0f}")
-
-    final_df = final_df[['Channel - Contribution', 'Creative', 'Spend']]
-    return final_df
-
+# Function to create a downloadable Excel file
 def download_excel(df, sheet_name='Sheet1'):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -105,37 +46,45 @@ def download_excel(df, sheet_name='Sheet1'):
     output.seek(0)
     return output
 
+# Main function for the app
 def main():
-    st.title("Share of Spends by Placements App")
-    st.write("Upload the Processed Data Excel file to consolidate and analyze spend data by channel and creative.")
+    st.title("Effect and Spend Share Data Prep & Difference Calculator")
 
-    # File uploader
-    uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
+    # File uploader for CSV file
+    uploaded_file = st.file_uploader("Upload the pareto_aggregated CSV file", type="csv")
     
     if uploaded_file is not None:
-        # Load the Excel file
-        df = pd.read_excel(uploaded_file)
+        # Load CSV file
+        df = pd.read_csv(uploaded_file)
 
-        # Consolidate columns with spend data only
-        consolidated_df = consolidate_columns(df)
+        # Ensure required columns are present
+        if 'solID' not in df.columns or 'rn' not in df.columns or 'spend_share' not in df.columns or 'effect_share' not in df.columns:
+            st.error("The uploaded file must contain 'solID', 'rn', 'spend_share', and 'effect_share' columns.")
+            return
 
-        # Aggregate and summarize spend data
-        spend_df = aggregate_spend(df, consolidated_df)
-        channel_summary_df = summarize_channel_spend(spend_df)
-        final_output_df = create_final_output_table(spend_df, channel_summary_df)
+        # Select solID to filter models
+        unique_sol_ids = df['solID'].unique()
+        selected_model = st.selectbox("Select Model (solID) to Analyze", options=unique_sol_ids)
+        
+        # Filter DataFrame based on the selected solID model
+        filtered_df = df[df['solID'] == selected_model]
 
-        # Display the final output table
-        st.subheader("Final Output Table")
-        st.write(final_output_df)
+        # Consolidate by 'rn' for Spend variables and calculate required fields
+        consolidated_df = consolidate_by_rn_spend(filtered_df)
 
-        # Provide download option for the final output table
-        excel_data_final_output = download_excel(final_output_df, sheet_name='Final Output')
+        # Display consolidated DataFrame
+        st.subheader("Consolidated Data")
+        st.write(consolidated_df)
+
+        # Download option for consolidated data
+        excel_data = download_excel(consolidated_df, sheet_name='Consolidated Data')
         st.download_button(
-            label="Download Final Output Table as Excel",
-            data=excel_data_final_output,
-            file_name="Share of spends by placements.xlsx",
+            label="Download Consolidated Data as Excel",
+            data=excel_data,
+            file_name="consolidated_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
+# Run the main function
 if __name__ == "__main__":
     main()
