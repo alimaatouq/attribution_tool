@@ -1,0 +1,157 @@
+# Main page
+[[pages]]
+path = "home.py"
+name = "Home"
+icon = "🏠"
+
+# Section 1: Robyn Code
+[[pages]]
+name = "Robyn Code"
+icon = "🔧"
+is_section = true
+
+[[pages]]
+path = "pages/Path_Editor.py"
+name = "Path Editor"
+icon = "🗂️"
+
+[[pages]]
+path = "pages/Column_Consolidation_App.py"
+name = "Column Consolidation"
+icon = "📊"
+
+[[pages]]
+path = "pages/Country_Code_Finder.py"
+name = "Country Code Finder"
+icon = "🌍"
+
+[[pages]]
+path = "pages/Date_Range_Finder.py"
+name = "Date Range Finder"
+icon = "📅"
+
+[[pages]]
+path = "pages/Paid_Media_Spends_Vars.py"
+name = "Paid Media Spends"
+icon = "💸"
+
+[[pages]]
+path = "pages/Hyperparameters.py"
+name = "Hyperparameters"
+icon = "⚙️"
+
+# Section 2: Model Selection
+[[pages]]
+name = "Model Selection"
+icon = "📈"
+is_section = true
+
+[[pages]]
+path = "pages/Sub_Model_Analysis.py"
+name = "Sub Model Analysis"
+icon = "🔍"
+
+[[pages]]
+path = "pages/Actual_VS_Predicted.py"
+name = "Actual vs Predicted"
+icon = "📉"
+
+# Section 3: Spends
+[[pages]]
+name = "Spends"
+icon = "💰"
+is_section = true
+
+[[pages]]
+path = "pages/Aggregated_Spend_Data_by_Channel.py"
+name = "Spends by Channel"
+icon = "📊"
+
+[[pages]]
+path = "pages/Spends_by_creative.py"
+name = "Spends by Creative"
+icon = "🎨"
+
+# Section 4: Website Visits
+[[pages]]
+name = "Website Visits"
+icon = "👁️"
+is_section = true
+
+[[pages]]
+path = "pages/Aggregated_Website_Visits_Data_by_Channel.py"
+name = "Visits by Channel"
+icon = "🚪"
+
+[[pages]]
+path = "pages/Website_visit_by_creative.py"
+name = "Visits by Creative"
+icon = "🖼️"
+
+[[pages]]
+path = "pages/Cost_Per_Visit_by_Creative.py"
+name = "CPV by Creative"
+icon = "💵"
+
+[[pages]]
+path = "pages/Cost_Per_Visit.py"
+name = "Cost Per Visit"
+icon = "🧮"
+
+# Section 5: Conversions
+[[pages]]
+name = "Conversions"
+icon = "🔄"
+is_section = true
+
+[[pages]]
+path = "pages/Aggregated_Website_Conversions_Data_by_Channel.py"
+name = "Conversions by Channel"
+icon = "📈"
+
+[[pages]]
+path = "pages/Website_conversions_by_creative.py"
+name = "Conversions by Creative"
+icon = "🖌️"
+
+[[pages]]
+path = "pages/Cost_Per_Conversion_by_Creative.py"
+name = "CPC by Creative"
+icon = "💲"
+
+[[pages]]
+path = "pages/Cost_Per_Conversion.py"
+name = "Cost Per Conversion"
+icon = "🧮"
+
+# Section 6: Presentation
+[[pages]]
+name = "Presentation"
+icon = "📑"
+is_section = true
+
+[[pages]]
+path = "pages/Share_of_spends_by_placements.py"
+name = "Share of Spends"
+icon = "📋"
+
+[[pages]]
+path = "pages/Model_KPI_Calculater.py"
+name = "Model KPI Calculator"
+icon = "🧮"
+
+[[pages]]
+path = "pages/Effect_and_Spend_share.py"
+name = "Effect & Spend Share"
+icon = "⚖️"
+
+# Section 7: Trial
+[[pages]]
+name = "Trial"
+icon = "🧪"
+is_section = true
+
+[[pages]]
+path = "pages/trial.py"
+name = "Trial Page"
+icon = "🔬"
