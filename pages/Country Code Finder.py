@@ -37,8 +37,6 @@ def scrape_country_codes():
     # Create a DataFrame
     return pd.DataFrame({"Country": countries, "Code": codes})
 
-# Page Configuration
-st.set_page_config(page_title="Country Code Finder", layout="centered")
 
 # Title and Description
 st.title("🌍 Country Code Finder")
