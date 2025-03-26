@@ -6,45 +6,61 @@ from io import BytesIO
 def consolidate_columns(df):
     # Filter columns to include only "spend" variables
     filtered_columns = [col for col in df.columns if "spend" in col.lower()]
-
-    # Consolidate column names by removing trailing numbers with underscores or hyphens
-    consolidated_columns = []
-    seen_columns = set()
-    ordered_unique_columns = []
-
+    
+    # Create a mapping of original columns to consolidated names
+    column_mapping = {}
+    base_names = set()
+    
     for col in filtered_columns:
-        new_col = re.sub(r'([_-]\d+)', '', col)
-        consolidated_columns.append(new_col)
-
-        # Preserve order of first occurrences only
-        if new_col not in seen_columns:
-            ordered_unique_columns.append(new_col)
-            seen_columns.add(new_col)
-
+        # Remove any trailing numbers (with optional underscore/dash prefix)
+        # Also handles cases where number is in the middle (DisplayBanner1)
+        base_name = re.sub(r'(\d+)(?=_Spend|$)', '', col)
+        base_name = re.sub(r'([_-]\d+)(?=_Spend|$)', '', base_name)
+        
+        # Standardize the name format
+        base_name = base_name.rstrip('_').lower()
+        column_mapping[col] = base_name
+        base_names.add(base_name)
+    
+    # Create consolidated dataframe
     consolidated_df = pd.DataFrame({
-        'Original Column Name': filtered_columns,
-        'Consolidated Column Name': consolidated_columns
+        'Original Column Name': list(column_mapping.keys()),
+        'Consolidated Column Name': list(column_mapping.values())
     })
-
+    
     return consolidated_df
 
 def aggregate_spend(df, consolidated_df):
     spend_data = []
-
-    # Group consolidated spend columns by channel and creative
+    
+    # Create a mapping from original to consolidated names
+    column_map = dict(zip(
+        consolidated_df['Original Column Name'],
+        consolidated_df['Consolidated Column Name']
+    ))
+    
+    # Group by consolidated names and sum
     for consolidated_name in consolidated_df['Consolidated Column Name'].unique():
-        match = re.match(r'([A-Za-z]+)_([A-Za-z]+)', consolidated_name)
-        if match:
-            channel = match.group(1)
-            creative = match.group(2)
+        # Get all original columns that map to this consolidated name
+        original_columns = [col for col, name in column_map.items() 
+                          if name == consolidated_name]
+        
+        # Calculate total spend
+        total_spend = df[original_columns].sum().sum()
+        
+        # Parse channel and creative from consolidated name
+        parts = re.split(r'_|(?<=[a-z])(?=[A-Z])', consolidated_name)
+        if len(parts) >= 2:
+            channel = parts[0].title()  # Capitalize first letter
+            creative = '_'.join(parts[1:-1]) if len(parts) > 2 else parts[1]
+            creative = creative.title()
             
-            # Sum up all original columns that match this consolidated name pattern
-            matching_columns = [col for col in df.columns if re.sub(r'([_-]\d+)', '', col) == consolidated_name]
-            spend_sum = df[matching_columns].sum(axis=1).sum()  # Sum across rows and then total
-            
-            # Append to spend_data list
-            spend_data.append({'Channel': channel, 'Creative': creative, 'Spend': spend_sum})
-
+            spend_data.append({
+                'Channel': channel,
+                'Creative': creative,
+                'Spend': total_spend
+            })
+    
     spend_df = pd.DataFrame(spend_data)
     return spend_df
 
@@ -117,7 +133,7 @@ def main():
         st.download_button(
             label="Download Final Output Table as Excel",
             data=excel_data_final_output,
-            file_name="final_output_table.xlsx",
+            file_name="Share of spends by placements.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
