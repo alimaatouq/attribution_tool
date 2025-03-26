@@ -1,6 +1,6 @@
 # Main page
 [[pages]]
-path = "HOME.py"
+path = "pages/HOME.py"
 name = "Home"
 icon = "🏠"
 
