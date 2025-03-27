@@ -64,16 +64,6 @@ name = "Visits by Channel/Creative/Format"
 icon = "📠"
 
 [[pages]]
-path = "pages/Cost Per Visit by Creative.py"
-name = "CPV by Creative"
-icon = "💵"
-
-[[pages]]
-path = "pages/Cost Per Visit.py"
-name = "Cost Per Visit"
-icon = "🌐"
-
-[[pages]]
 path = "pages/cpv_analysis.py"
 name = "Cost Per Visit Analysis"
 icon = "🌐"
