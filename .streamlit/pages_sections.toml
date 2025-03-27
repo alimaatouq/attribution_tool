@@ -18,29 +18,9 @@ name = "Path Editor"
 icon = "🗂️"
 
 [[pages]]
-path = "pages/Column Consolidation App.py"
-name = "Column Consolidation"
-icon = "📊"
-
-[[pages]]
 path = "pages/Country Code Finder.py"
 name = "Country Code Finder"
 icon = "🌍"
-
-[[pages]]
-path = "pages/Date_Range_Finder.py"
-name = "Date Range Finder"
-icon = "📅"
-
-[[pages]]
-path = "pages/Paid_Media_Spends_Vars.py"
-name = "Paid Media Spends Variables"
-icon = "💸"
-
-[[pages]]
-path = "pages/Hyperparameters.py"
-name = "Hyperparameters"
-icon = "⚙️"
 
 [[pages]]
 path = "pages/Robyn Code Processing.py"
