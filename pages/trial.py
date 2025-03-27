@@ -55,6 +55,33 @@ def calculate_cpv(spend_df, visits_df, by_creative=False):
         }])
         return pd.concat([merged, total], ignore_index=True)
 
+def download_excel(df, sheet_name='Sheet1'):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+        
+        # Add formatting for currency
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+        
+        # Format currency columns
+        money_fmt = workbook.add_format({'num_format': '$#,##0.00'})
+        if 'Spend' in df.columns:
+            worksheet.set_column('C:C', None, money_fmt)
+        if 'CPV' in df.columns:
+            cpv_col = df.columns.get_loc('CPV')  # Get column index
+            worksheet.set_column(cpv_col, cpv_col, None, money_fmt)
+        
+        # Format total rows
+        total_fmt = workbook.add_format({'bold': True, 'bg_color': '#FFF2CC'})
+        if 'Channel' in df.columns:
+            for row_num, value in enumerate(df['Channel']):
+                if value == 'TOTAL':
+                    worksheet.set_row(row_num + 1, None, total_fmt)
+    
+    output.seek(0)
+    return output
+
 def main():
     st.title("Cost Per Visit Analysis")
     
@@ -80,6 +107,15 @@ def main():
                 'Visits': '{:,.0f}',
                 'CPV': '${:,.2f}'
             }))
+            
+            # Download button
+            excel_data = download_excel(result, sheet_name='CPV by Channel')
+            st.download_button(
+                label="📥 Download CPV by Channel",
+                data=excel_data,
+                file_name="cpv_by_channel.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
     
     with tab2:
         st.subheader("CPV by Channel & Creative")
@@ -101,6 +137,15 @@ def main():
                 'Visits': '{:,.0f}',
                 'CPV': '${:,.2f}'
             }))
+            
+            # Download button
+            excel_data = download_excel(result, sheet_name='CPV by Channel-Creative')
+            st.download_button(
+                label="📥 Download CPV by Channel-Creative",
+                data=excel_data,
+                file_name="cpv_by_channel_creative.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
 
 if __name__ == "__main__":
     main()
