@@ -67,6 +67,13 @@ def create_visits_df(results, include_total=True):
     
     return df
 
+def download_excel(df, sheet_name='Sheet1'):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    return output
+
 def main():
     st.title("Website Visits Analysis")
     
@@ -86,11 +93,35 @@ def main():
             channel_df = create_visits_df(channel_results)
             st.dataframe(channel_df)
             
+            # Download button for channel data
+            excel_data = download_excel(
+                create_visits_df(channel_results, include_total=False),
+                sheet_name='Visits by Channel'
+            )
+            st.download_button(
+                label="📥 Download Channel Visits",
+                data=excel_data,
+                file_name="visits_by_channel.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            
         with tab2:
             st.subheader("Aggregated Visits by Channel & Creative")
             creative_results = aggregate_visits(filtered_df, by_channel_only=False)
             creative_df = create_visits_df(creative_results)
             st.dataframe(creative_df)
+            
+            # Download button for creative data
+            excel_data = download_excel(
+                create_visits_df(creative_results, include_total=False),
+                sheet_name='Visits by Channel-Creative'
+            )
+            st.download_button(
+                label="📥 Download Channel-Creative Visits",
+                data=excel_data,
+                file_name="visits_by_channel_creative.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
 
 if __name__ == "__main__":
     main()
