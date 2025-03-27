@@ -46,18 +46,13 @@ icon = "📉"
 # Section 3: Spends
 [[pages]]
 name = "Section 3: Spends"
-icon = "💰"
+icon = ""
 is_section = true
 
 [[pages]]
-path = "pages/Aggregated Spend Data by Channel.py"
-name = "Spends by Channel"
-icon = "📊"
-
-[[pages]]
-path = "pages/Spends by creative.py"
-name = "Spends by Creative"
-icon = "🎨"
+path = "pages/Spends.py"
+name = "Spends by Channel/Creative/Format"
+icon = "💰"
 
 # Section 4: Website Visits
 [[pages]]
