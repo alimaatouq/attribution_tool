@@ -59,16 +59,6 @@ icon = ""
 is_section = true
 
 [[pages]]
-path = "pages/Aggregated Website Visits Data by Channel.py"
-name = "Visits by Channel"
-icon = "🚪"
-
-[[pages]]
-path = "pages/Website visit by creative.py"
-name = "Visits by Creative"
-icon = "🖼️"
-
-[[pages]]
 path = "pages/Cost Per Visit by Creative.py"
 name = "CPV by Creative"
 icon = "💵"
