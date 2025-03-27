@@ -122,7 +122,6 @@ def creative_tab(df):
 
 # Main app
 def main():
-    st.set_page_config(page_title="Spend Analysis Tool", layout="wide")
     st.title("Marketing Spend Analysis Dashboard")
     st.write("Analyze your marketing spend by channel and creative type.")
     
