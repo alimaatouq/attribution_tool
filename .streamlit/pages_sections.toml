@@ -44,7 +44,7 @@ icon = "⚙️"
 
 [[pages]]
 path = "pages/Robyn Code Processing.py"
-name = "Hyperparameters"
+name = "Code Processing"
 icon = "⚙️"
 
 # Section 2: Model Selection
