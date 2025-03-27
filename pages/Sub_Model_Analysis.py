@@ -76,7 +76,7 @@ def analyze_file(uploaded_file):
 st.title("Submodel Analysis App")
 
 # File uploader widget (supports CSV and Excel)
-uploaded_file = st.file_uploader("Upload your Excel or CSV file", type=["xlsx", "csv"])
+uploaded_file = st.file_uploader("Upload pareto_aggregated Excel or CSV file", type=["xlsx", "csv"])
 
 # Analyze the uploaded file if it is provided
 if uploaded_file:
