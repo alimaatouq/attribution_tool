@@ -8,19 +8,28 @@ def load_data(file):
 def standardize_names(df):
     """Standardize channel and creative names to lowercase for consistent matching"""
     if 'Channel' in df.columns:
-        df['Channel'] = df['Channel'].str.lower()
+        df['Channel'] = df['Channel'].str.lower().str.strip()
     if 'Creative' in df.columns:
-        df['Creative'] = df['Creative'].str.lower()
+        df['Creative'] = df['Creative'].str.lower().str.strip()
     return df
 
 def calculate_cpv(spend_df, visits_df, by_creative=False):
-    # Standardize column names and values
+    # Standardize column names first
+    spend_df = spend_df.rename(columns={
+        'Creation': 'Spend',
+        'Spend': 'Spend',
+        'Vista': 'Visits',
+        'Visits': 'Visits'
+    })
+    visits_df = visits_df.rename(columns={
+        'Speed': 'Visits',
+        'Visits': 'Visits',
+        'Vista': 'Visits'
+    })
+    
+    # Standardize names for consistent merging
     spend_df = standardize_names(spend_df)
     visits_df = standardize_names(visits_df)
-    
-    # Standardize column names before merge
-    spend_df = spend_df.rename(columns={'Creation': 'Spend'} if 'Creation' in spend_df.columns else spend_df)
-    visits_df = visits_df.rename(columns={'Speed': 'Visits'} if 'Speed' in visits_df.columns else visits_df)
     
     merge_cols = ['Channel'] if not by_creative else ['Channel', 'Creative']
     
@@ -123,6 +132,14 @@ def main():
             spend_df = load_data(spend_file)
             visits_df = load_data(visits_file)
             
+            # Ensure we have the required columns
+            if 'Spend' not in spend_df.columns:
+                st.error("Spend data must contain a 'Spend' column")
+                return
+            if 'Visits' not in visits_df.columns:
+                st.error("Visits data must contain a 'Visits' column")
+                return
+            
             result = calculate_cpv(spend_df, visits_df, by_creative=False)
             st.dataframe(result.style.format({
                 'Spend': '${:,.0f}',
@@ -151,6 +168,14 @@ def main():
         if spend_file and visits_file:
             spend_df = load_data(spend_file)
             visits_df = load_data(visits_file)
+            
+            # Ensure we have the required columns
+            if 'Spend' not in spend_df.columns or 'Creative' not in spend_df.columns:
+                st.error("Spend data must contain both 'Spend' and 'Creative' columns")
+                return
+            if 'Visits' not in visits_df.columns or 'Creative' not in visits_df.columns:
+                st.error("Visits data must contain both 'Visits' and 'Creative' columns")
+                return
             
             result = calculate_cpv(spend_df, visits_df, by_creative=True)
             st.dataframe(result.style.format({
