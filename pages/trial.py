@@ -65,7 +65,7 @@ def aggregate_website_visits(df):
 def main():
     st.title("Website Visits Aggregator")
     
-    uploaded_file = st.file_uploader("Upload CSV file", type="csv")
+    uploaded_file = st.file_uploader("Upload pareto_alldecomp_matrix.csv file", type="csv")
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         
