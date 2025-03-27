@@ -208,7 +208,6 @@ def cpv_by_creative_tab():
 
 # Main app
 def main():
-    st.set_page_config(page_title="Website Visits Analyzer", layout="wide")
     st.title("Website Visits Analysis Dashboard")
     
     # File upload and model selection (shared across first two tabs)
