@@ -77,7 +77,7 @@ def download_excel(df, sheet_name='Sheet1'):
 def main():
     st.title("Website Visits Analysis")
     
-    uploaded_file = st.file_uploader("📤 Upload your marketing data", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("📤 Upload pareto_alldecomp_matrix.csv", type=["csv", "xlsx"])
     
     if uploaded_file:
         df = load_data(uploaded_file)
