@@ -125,7 +125,7 @@ def main():
     st.title("Marketing Spend Analysis Dashboard")
     st.write("Analyze your marketing spend by channel and creative type.")
     
-    uploaded_file = st.file_uploader("📤 Upload your marketing data (Excel)", type=["xlsx"])
+    uploaded_file = st.file_uploader("📤 Upload your raw marketing data (Excel)", type=["xlsx"])
     
     if uploaded_file:
         try:
