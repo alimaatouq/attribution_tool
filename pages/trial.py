@@ -1,96 +1,107 @@
 import streamlit as st
 import pandas as pd
-import re
 from io import BytesIO
 
-def load_data(uploaded_file):
-    return pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+def load_data(file):
+    return pd.read_excel(file) if file.name.endswith('.xlsx') else pd.read_csv(file)
 
-def filter_by_model(df, selected_model):
-    return df[df['solID'] == selected_model]
-
-def standardize_column_name(col_name):
-    col_name = re.sub(r'_Spend$', '', col_name, flags=re.IGNORECASE)
-    col_name = re.sub(r'([_-]?\d+)$', '', col_name)
-    col_name = re.sub(r'(\D)\d+(\D)', r'\1\2', col_name)
-    col_name = col_name.replace('_', ' ').title()
-    return col_name.strip()
-
-def aggregate_visits(df, by_channel_only=False):
-    results = {}
+def calculate_cpv(spend_df, visits_df, by_creative=False):
+    merge_cols = ['Channel'] if not by_creative else ['Channel', 'Creative']
     
-    for col in df.columns:
-        if 'spend' not in col.lower() or col == 'KPI_Website_Sessions':
-            continue
-            
-        standardized = standardize_column_name(col)
-        parts = standardized.split()
-        
-        if by_channel_only:
-            key = parts[0]  # Just use channel name
-        else:
-            key = (parts[0], ' '.join(parts[1:])) if len(parts) >= 2 else (parts[0], 'General')
-        
-        if key not in results:
-            results[key] = 0
-            
-        results[key] += pd.to_numeric(df[col], errors='coerce').fillna(0).sum()
+    # Standardize column names and merge
+    merged = pd.merge(
+        spend_df.rename(columns={'Visits': 'Spend'} if 'Visits' in spend_df.columns else {}),
+        visits_df,
+        on=merge_cols,
+        how='outer'
+    ).fillna(0)
     
-    return results
-
-def create_visits_df(results, include_total=True):
-    if isinstance(next(iter(results.keys())), tuple):
-        # Channel-Creative view
-        df = pd.DataFrame(
-            [{'Channel': k[0], 'Creative': k[1], 'Visits': int(round(v))} 
-             for k, v in results.items()]
+    # Calculate CPV
+    merged['CPV'] = merged.apply(
+        lambda r: round(r['Spend']/r['Visits'], 2) if r['Visits'] > 0 else 0, 
+        axis=1
+    )
+    
+    # Add totals
+    if by_creative:
+        # Channel totals
+        channel_totals = merged.groupby('Channel').agg({
+            'Spend': 'sum',
+            'Visits': 'sum'
+        }).reset_index()
+        channel_totals['CPV'] = channel_totals.apply(
+            lambda r: round(r['Spend']/r['Visits'], 2) if r['Visits'] > 0 else 0,
+            axis=1
         )
-        if include_total:
-            total = pd.DataFrame([{
-                'Channel': 'Total', 
-                'Creative': '', 
-                'Visits': df['Visits'].sum()
-            }])
-            df = pd.concat([df, total], ignore_index=True)
+        channel_totals['Creative'] = 'Channel Total'
+        
+        # Grand total
+        grand_total = pd.DataFrame([{
+            'Channel': 'TOTAL',
+            'Creative': '',
+            'Spend': merged['Spend'].sum(),
+            'Visits': merged['Visits'].sum(),
+            'CPV': round(merged['Spend'].sum()/merged['Visits'].sum(), 2) if merged['Visits'].sum() > 0 else 0
+        }])
+        
+        return pd.concat([merged, channel_totals, grand_total], ignore_index=True)
     else:
-        # Channel-only view
-        df = pd.DataFrame(
-            [{'Channel': k, 'Visits': int(round(v))} 
-             for k, v in results.items()]
-        )
-        if include_total:
-            total = pd.DataFrame([{
-                'Channel': 'Total', 
-                'Visits': df['Visits'].sum()
-            }])
-            df = pd.concat([df, total], ignore_index=True)
-    
-    return df
+        # Just add grand total
+        total = pd.DataFrame([{
+            'Channel': 'TOTAL',
+            'Spend': merged['Spend'].sum(),
+            'Visits': merged['Visits'].sum(),
+            'CPV': round(merged['Spend'].sum()/merged['Visits'].sum(), 2) if merged['Visits'].sum() > 0 else 0
+        }])
+        return pd.concat([merged, total], ignore_index=True)
 
 def main():
-    st.title("Website Visits Analysis")
+    st.set_page_config(page_title="CPV Analysis", layout="wide")
+    st.title("Cost Per Visit Analysis")
     
-    uploaded_file = st.file_uploader("📤 Upload your marketing data", type=["csv", "xlsx"])
+    tab1, tab2 = st.tabs(["By Channel", "By Channel & Creative"])
     
-    if uploaded_file:
-        df = load_data(uploaded_file)
-        models = df['solID'].unique()
-        selected_model = st.selectbox("Select Model (solID)", options=models)
-        filtered_df = filter_by_model(df, selected_model)
+    with tab1:
+        st.subheader("CPV by Channel")
+        st.info("Upload your channel-level spend and visits data")
         
-        tab1, tab2 = st.tabs(["By Channel", "By Channel & Creative"])
+        col1, col2 = st.columns(2)
+        with col1:
+            spend_file = st.file_uploader("Spend Data", type=["csv", "xlsx"], key="spend_channel")
+        with col2:
+            visits_file = st.file_uploader("Visits Data", type=["csv", "xlsx"], key="visits_channel")
         
-        with tab1:
-            st.subheader("Aggregated Visits by Channel")
-            channel_results = aggregate_visits(filtered_df, by_channel_only=True)
-            channel_df = create_visits_df(channel_results)
-            st.dataframe(channel_df)
+        if spend_file and visits_file:
+            spend_df = load_data(spend_file)
+            visits_df = load_data(visits_file)
             
-        with tab2:
-            st.subheader("Aggregated Visits by Channel & Creative")
-            creative_results = aggregate_visits(filtered_df, by_channel_only=False)
-            creative_df = create_visits_df(creative_results)
-            st.dataframe(creative_df)
+            result = calculate_cpv(spend_df, visits_df, by_creative=False)
+            st.dataframe(result.style.format({
+                'Spend': '${:,.0f}',
+                'Visits': '{:,.0f}',
+                'CPV': '${:,.2f}'
+            }))
+    
+    with tab2:
+        st.subheader("CPV by Channel & Creative")
+        st.info("Upload your channel-creative spend and visits data")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            spend_file = st.file_uploader("Spend Data", type=["csv", "xlsx"], key="spend_creative")
+        with col2:
+            visits_file = st.file_uploader("Visits Data", type=["csv", "xlsx"], key="visits_creative")
+        
+        if spend_file and visits_file:
+            spend_df = load_data(spend_file)
+            visits_df = load_data(visits_file)
+            
+            result = calculate_cpv(spend_df, visits_df, by_creative=True)
+            st.dataframe(result.style.format({
+                'Spend': '${:,.0f}',
+                'Visits': '{:,.0f}',
+                'CPV': '${:,.2f}'
+            }))
 
 if __name__ == "__main__":
     main()
