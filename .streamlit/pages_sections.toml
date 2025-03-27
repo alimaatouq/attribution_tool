@@ -10,8 +10,6 @@ name = "Section 1: Robyn Code"
 icon = ""
 is_section = true
 
-
-
 [[pages]]
 path = "pages/Path_Editor.py"
 name = "Path Editor"
@@ -79,6 +77,11 @@ icon = "💵"
 path = "pages/Cost Per Visit.py"
 name = "Cost Per Visit"
 icon = "🧮"
+
+[[pages]]
+path = "pages/website_visits_analysis.py"
+name = "Visits by Channel/Creative/Format"
+icon = "🚪"
 
 # Section 5: Conversions
 [[pages]]
