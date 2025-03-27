@@ -64,7 +64,7 @@ def download_excel(df, sheet_name='Sheet1'):
 
 def main():
     st.title("Website Visits Aggregation by Channel and Creative")
-    st.write("Upload a CSV file, filter by model, and aggregate website visits by channel and creative.")
+    st.write("Upload the pareto_alldecomp_matrix CSV file, filter by model, and aggregate website visits by channel and creative.")
 
     # File uploader
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
