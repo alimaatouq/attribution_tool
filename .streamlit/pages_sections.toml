@@ -59,6 +59,11 @@ icon = ""
 is_section = true
 
 [[pages]]
+path = "pages/website_visits_analysis.py"
+name = "Visits by Channel/Creative/Format"
+icon = "🚪"
+
+[[pages]]
 path = "pages/Cost Per Visit by Creative.py"
 name = "CPV by Creative"
 icon = "💵"
@@ -67,11 +72,6 @@ icon = "💵"
 path = "pages/Cost Per Visit.py"
 name = "Cost Per Visit"
 icon = "🧮"
-
-[[pages]]
-path = "pages/website_visits_analysis.py"
-name = "Visits by Channel/Creative/Format"
-icon = "🚪"
 
 # Section 5: Conversions
 [[pages]]
