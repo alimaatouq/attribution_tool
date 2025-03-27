@@ -83,8 +83,8 @@ def creative_tab(df):
     
     consolidated_df, unique_columns_df = consolidate_columns(df)
     
-    with st.expander("🔍 View Column Consolidation Mapping"):
-        st.write(consolidated_df)
+    #with st.expander("🔍 View Column Consolidation Mapping"):
+        #st.write(consolidated_df)
     
     # Aggregate spend by channel and creative
     spend_data = []
