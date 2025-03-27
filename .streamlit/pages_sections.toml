@@ -76,7 +76,7 @@ icon = "🌐"
 [[pages]]
 path = "pages/cpv_analysis.py"
 name = "Cost Per Visit Analysis"
-icon = "🧮"
+icon = "🌐"
 
 # Section 5: Conversions
 [[pages]]
