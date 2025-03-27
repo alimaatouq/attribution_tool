@@ -56,7 +56,6 @@ def calculate_cpv(spend_df, visits_df, by_creative=False):
         return pd.concat([merged, total], ignore_index=True)
 
 def main():
-    st.set_page_config(page_title="CPV Analysis", layout="wide")
     st.title("Cost Per Visit Analysis")
     
     tab1, tab2 = st.tabs(["By Channel", "By Channel & Creative"])
