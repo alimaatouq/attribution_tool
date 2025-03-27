@@ -43,8 +43,8 @@ def channel_tab(df):
     
     consolidated_df, unique_columns_df = consolidate_columns(df, by_channel_only=True)
     
-    with st.expander("🔍 View Column Consolidation Mapping"):
-        st.write(consolidated_df)
+    #with st.expander("🔍 View Column Consolidation Mapping"):
+        #st.write(consolidated_df)
     
     # Aggregate spend by channel
     spend_data = []
