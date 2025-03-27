@@ -71,6 +71,11 @@ icon = "💵"
 [[pages]]
 path = "pages/Cost Per Visit.py"
 name = "Cost Per Visit"
+icon = "🌐"
+
+[[pages]]
+path = "pages/cpv_analysis.py"
+name = "Cost Per Visit Analysis"
 icon = "🧮"
 
 # Section 5: Conversions
