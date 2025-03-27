@@ -68,7 +68,6 @@ def create_visits_df(results, include_total=True):
     return df
 
 def main():
-    st.set_page_config(page_title="Website Visits Analysis", layout="wide")
     st.title("Website Visits Analysis")
     
     uploaded_file = st.file_uploader("📤 Upload your marketing data", type=["csv", "xlsx"])
