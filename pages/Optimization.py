@@ -69,8 +69,8 @@ def to_excel_bytes(df):
     return output
 
 def main():
-    st.title("Marketing Optimization KPI Dashboard")
-    st.markdown("Upload the required files and enter the solID to generate the KPI metrics.")
+    st.title("Attribution Optimization")
+    st.markdown("Upload the required files and enter the solID to generate the Optimization metrics.")
 
     conversions_file = st.file_uploader("Upload pareto_alldecomp_matrix CSV", type="csv")
     spends_file = st.file_uploader("Upload Raw Data Excel", type="xlsx")
