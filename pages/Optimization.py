@@ -72,9 +72,9 @@ def main():
     st.title("Marketing Optimization KPI Dashboard")
     st.markdown("Upload the required files and enter the solID to generate the KPI metrics.")
 
-    conversions_file = st.file_uploader("Upload Conversions CSV", type="csv")
-    spends_file = st.file_uploader("Upload Spends Excel", type="xlsx")
-    preprocessed_file = st.file_uploader("Upload Preprocessed CSV", type="csv")
+    conversions_file = st.file_uploader("Upload pareto_alldecomp_matrix CSV", type="csv")
+    spends_file = st.file_uploader("Upload Raw Data Excel", type="xlsx")
+    preprocessed_file = st.file_uploader("Upload Reallocation CSV", type="csv")
     solID_value = st.text_input("Enter solID (e.g., 4_9407_1)")
 
     if conversions_file and spends_file and preprocessed_file and solID_value:
