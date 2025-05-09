@@ -89,7 +89,7 @@ def main():
             st.dataframe(final_df)
 
             st.download_button(
-                label="Download KPI Report as Excel",
+                label="Download Optimization Report as Excel",
                 data=to_excel_bytes(final_df),
                 file_name="kpi_summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
