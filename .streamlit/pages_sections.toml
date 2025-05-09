@@ -115,7 +115,18 @@ path = "pages/Effect and Spend share.py"
 name = "Effect & Spend Share"
 icon = "⚖️"
 
-# Section 7: Trial
+# Section 7: Optimization
+[[pages]]
+name = "Optimization"
+icon = ""
+is_section = true
+
+[[pages]]
+path = "pages/Optimization.py"
+name = "Optimization Page"
+icon = "🤖"
+
+# Section 8: Trial
 [[pages]]
 name = "Trial"
 icon = ""
