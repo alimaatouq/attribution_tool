@@ -9,4 +9,3 @@ bs4
 plotly
 matplotlib
 st_pages
-XlsxWriter
