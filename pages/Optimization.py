@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import re
+import io
+
 
 # ===============================
 # Utility Functions
@@ -147,12 +149,13 @@ if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
             'abs budg change': '{:,.0f}'
         }), use_container_width=True)
 
+        # Save to buffer
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            final_df.to_excel(writer, index=False, sheet_name='Optimization_KPIs')
+        output.seek(0)
+
         # Download button
         st.download_button(
-            label="📥 Download as Excel",
-            data=final_df.to_excel(index=False, engine='xlsxwriter'),
-            file_name="optimization_kpi_output.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.warning("One or more datasets could not be processed. Please check your files.")
+        label="📥 Download as Excel", data=output, file_name="optimization_output.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
