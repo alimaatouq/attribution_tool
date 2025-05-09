@@ -68,7 +68,7 @@ def merge_data(conversions_df, spends_df, pre_df):
 def to_excel_bytes(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='KPI_Results')
+        df.to_excel(writer, index=False, sheet_name='Optimization_Results')
     output.seek(0)
     return output
 
