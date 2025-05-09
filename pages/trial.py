@@ -68,16 +68,26 @@ def format_df_for_display(df):
     return display_df
 
 def calculate_kpis(df):
-    old_total_budget = df['old_budget'].sum()
-    new_total_budget = df['new_budget'].sum()
-    old_total_resp = df['old_response'].sum()
-    new_total_resp = df['new_response'].sum()
+    df_clean = df.copy()
+
+    # Remove rows where old_budget or old_response is zero or missing
+    df_clean = df_clean[(df_clean['old_budget'] > 0) & (df_clean['old_response'] > 0)]
+    df_clean = df_clean[(df_clean['new_budget'] > 0) & (df_clean['new_response'] > 0)]
+
+    old_total_budget = df_clean['old_budget'].sum()
+    new_total_budget = df_clean['new_budget'].sum()
+    old_total_resp = df_clean['old_response'].sum()
+    new_total_resp = df_clean['new_response'].sum()
 
     budget_change_pct = ((new_total_budget - old_total_budget) / old_total_budget) * 100
     response_change_pct = ((new_total_resp - old_total_resp) / old_total_resp) * 100
-    cpa_change_pct = ((new_total_budget / new_total_resp) - (old_total_budget / old_total_resp)) / (old_total_budget / old_total_resp) * 100
 
-    return budget_change_pct, response_change_pct, cpa_change_pct
+    old_cpa = old_total_budget / old_total_resp if old_total_resp != 0 else float('inf')
+    new_cpa = new_total_budget / new_total_resp if new_total_resp != 0 else float('inf')
+    cpa_change_pct = ((old_cpa - new_cpa) / old_cpa) * 100 if old_cpa != 0 else float('inf')
+
+    return round(budget_change_pct, 2), round(response_change_pct, 2), round(cpa_change_pct, 2)
+
 
 def to_excel_bytes(df):
     output = BytesIO()
