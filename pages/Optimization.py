@@ -85,13 +85,13 @@ def main():
 
             final_df = merge_data(conversions_df, spends_df, preprocessed_df)
 
-            st.subheader("KPI Summary Table")
+            st.subheader("Optimization Summary Table")
             st.dataframe(final_df)
 
             st.download_button(
                 label="Download Optimization Report as Excel",
                 data=to_excel_bytes(final_df),
-                file_name="kpi_summary.xlsx",
+                file_name="optimization_summary.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         except Exception as e:
