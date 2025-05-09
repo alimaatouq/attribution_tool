@@ -1,196 +1,135 @@
 import streamlit as st
 import pandas as pd
+import re
 from io import BytesIO
 
-def load_data(file):
-    return pd.read_excel(file) if file.name.endswith('.xlsx') else pd.read_csv(file)
+def load_conversions(file, solID_value):
+    df = pd.read_csv(file)
+    if 'solID' not in df.columns:
+        raise ValueError("Missing 'solID' column in conversions file.")
+    df = df[df['solID'] == solID_value]
+    channel_data = {}
+    for col in df.columns:
+        if 'spend' not in col.lower() or col == 'KPI_Website_Conversions':
+            continue
+        match = re.match(r'([A-Za-z]+)', col)
+        if match:
+            channel = match.group(1)
+            channel_data[channel] = channel_data.get(channel, 0) + pd.to_numeric(df[col], errors='coerce').sum()
+    return pd.DataFrame(list(channel_data.items()), columns=['channel', 'old_response'])
 
-def standardize_names(df):
-    """Standardize channel and creative names to lowercase for consistent matching"""
-    if 'Channel' in df.columns:
-        df['Channel'] = df['Channel'].str.lower().str.strip()
-    if 'Creative' in df.columns:
-        df['Creative'] = df['Creative'].str.lower().str.strip()
-    return df
+def load_spends(file):
+    df = pd.read_excel(file)
+    spend_columns = [col for col in df.columns if "spend" in col.lower()]
+    consolidated_columns = [re.sub(r'([_-]\d+)', '', col) for col in spend_columns]
+    channel_data = {}
+    for original_col, consolidated_col in zip(spend_columns, consolidated_columns):
+        match = re.match(r'([A-Za-z]+)', consolidated_col)
+        if match:
+            channel = match.group(1)
+            channel_data[channel] = channel_data.get(channel, 0) + pd.to_numeric(df[original_col], errors='coerce').sum()
+    return pd.DataFrame(list(channel_data.items()), columns=['channel', 'old_budget'])
 
-def calculate_cpv(spend_df, visits_df, by_creative=False):
-    # Standardize column names first
-    spend_df = spend_df.rename(columns={
-        'Creation': 'Spend',
-        'Spend': 'Spend',
-        'Vista': 'Visits',
-        'Visits': 'Visits'
-    })
-    visits_df = visits_df.rename(columns={
-        'Speed': 'Visits',
-        'Visits': 'Visits',
-        'Vista': 'Visits'
-    })
-    
-    # Standardize names for consistent merging
-    spend_df = standardize_names(spend_df)
-    visits_df = standardize_names(visits_df)
-    
-    merge_cols = ['Channel'] if not by_creative else ['Channel', 'Creative']
-    
-    # Merge dataframes
-    merged = pd.merge(
-        spend_df,
-        visits_df,
-        on=merge_cols,
-        how='outer'
-    ).fillna(0)
-    
-    # Calculate CPV
-    merged['CPV'] = merged.apply(
-        lambda r: round(r['Spend']/r['Visits'], 2) if r['Visits'] > 0 else 0, 
-        axis=1
-    )
-    
-    # Capitalize first letters for presentation
-    merged['Channel'] = merged['Channel'].str.title()
-    if 'Creative' in merged.columns:
-        merged['Creative'] = merged['Creative'].str.title()
-    
-    # Add totals
-    if by_creative:
-        # Channel totals
-        channel_totals = merged.groupby('Channel').agg({
-            'Spend': 'sum',
-            'Visits': 'sum'
-        }).reset_index()
-        channel_totals['CPV'] = channel_totals.apply(
-            lambda r: round(r['Spend']/r['Visits'], 2) if r['Visits'] > 0 else 0,
-            axis=1
-        )
-        channel_totals['Creative'] = 'Total'
-        
-        # Grand total
-        grand_total = pd.DataFrame([{
-            'Channel': 'Total',
-            'Creative': '-',
-            'Spend': merged['Spend'].sum(),
-            'Visits': merged['Visits'].sum(),
-            'CPV': round(merged['Spend'].sum()/merged['Visits'].sum(), 2) if merged['Visits'].sum() > 0 else 0
-        }])
-        
-        final_df = pd.concat([merged, channel_totals, grand_total], ignore_index=True)
-    else:
-        # Just add grand total
-        total = pd.DataFrame([{
-            'Channel': 'Total',
-            'Spend': merged['Spend'].sum(),
-            'Visits': merged['Visits'].sum(),
-            'CPV': round(merged['Spend'].sum()/merged['Visits'].sum(), 2) if merged['Visits'].sum() > 0 else 0
-        }])
-        final_df = pd.concat([merged, total], ignore_index=True)
-    
-    return final_df.sort_values(by='Channel')
+def load_preprocessed(file):
+    df = pd.read_csv(file)
+    df['period_number'] = df['periods'].apply(lambda x: int(re.search(r'\d+', str(x)).group()) if pd.notnull(x) else None)
+    channel_split = df['channels'].str.extract(r'([^_]+)_([^_]+)_(.+)')
+    channel_split.columns = ['channel', 'channel_type', 'channel_metric']
+    df = pd.concat([df, channel_split], axis=1)
+    grouped = df.groupby('channel').agg({
+        'optmSpendUnit': 'sum',
+        'optmResponseUnit': 'sum',
+        'period_number': 'mean'
+    }).reset_index()
+    grouped['new_budget'] = (grouped['optmSpendUnit'] * grouped['period_number']).round(1)
+    grouped['new_response'] = (grouped['optmResponseUnit'] * grouped['period_number']).round(1)
+    return grouped[['channel', 'new_budget', 'new_response']]
 
-def download_excel(df, sheet_name='Sheet1'):
+def merge_data(conversions_df, spends_df, pre_df):
+    df = pd.merge(conversions_df, spends_df, on='channel', how='outer')
+    df = pd.merge(df, pre_df, on='channel', how='outer')
+
+    df['budget change'] = ((df['new_budget'] - df['old_budget']) / df['old_budget']) * 100
+    df['resp change'] = ((df['new_response'] - df['old_response']) / df['old_response']) * 100
+    df['abs budg change'] = df['new_budget'] - df['old_budget']
+
+    df = df[['channel', 'old_budget', 'new_budget', 'old_response', 'new_response',
+             'budget change', 'resp change', 'abs budg change']]
+
+    return df.round(1)
+
+def format_df_for_display(df):
+    display_df = df.copy()
+    display_df['old_budget'] = display_df['old_budget'].map('${:,.0f}'.format)
+    display_df['new_budget'] = display_df['new_budget'].map('${:,.0f}'.format)
+    display_df['budget change'] = display_df['budget change'].map('{:.2f}%'.format)
+    display_df['resp change'] = display_df['resp change'].map(lambda x: '{:.3f}'.format(x) if pd.notnull(x) else 'nan')
+    display_df['abs budg change'] = display_df['abs budg change'].map(lambda x: f"(${abs(x):,.0f})" if x < 0 else f"${x:,.0f}")
+    return display_df
+
+def calculate_kpis(df):
+    old_total_budget = df['old_budget'].sum()
+    new_total_budget = df['new_budget'].sum()
+    old_total_resp = df['old_response'].sum()
+    new_total_resp = df['new_response'].sum()
+
+    budget_change_pct = ((new_total_budget - old_total_budget) / old_total_budget) * 100
+    response_change_pct = ((new_total_resp - old_total_resp) / old_total_resp) * 100
+    cpa_change_pct = ((new_total_budget / new_total_resp) - (old_total_budget / old_total_resp)) / (old_total_budget / old_total_resp) * 100
+
+    return budget_change_pct, response_change_pct, cpa_change_pct
+
+def to_excel_bytes(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name=sheet_name)
-        
-        workbook = writer.book
-        worksheet = writer.sheets[sheet_name]
-        
-        # Format currency columns
-        money_fmt = workbook.add_format({'num_format': '$#,##0.00'})
-        if 'Spend' in df.columns:
-            spend_col = df.columns.get_loc('Spend')
-            worksheet.set_column(spend_col, spend_col, None, money_fmt)
-        if 'CPV' in df.columns:
-            cpv_col = df.columns.get_loc('CPV')
-            worksheet.set_column(cpv_col, cpv_col, None, money_fmt)
-        
-        # Format total rows
-        total_fmt = workbook.add_format({'bold': True, 'bg_color': '#FFF2CC'})
-        for row_num, value in enumerate(df['Channel']):
-            if value == 'Total':
-                worksheet.set_row(row_num + 1, None, total_fmt)
-    
+        df.to_excel(writer, index=False, sheet_name='KPI_Results')
     output.seek(0)
     return output
 
+# Streamlit App
 def main():
-    st.title("Cost Per Visit Analysis")
-    
-    tab1, tab2 = st.tabs(["By Channel", "By Channel & Creative"])
-    
-    with tab1:
-        st.subheader("CPV by Channel")
-        st.info("Upload your channel-level spend and visits data")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            spend_file = st.file_uploader("Spend Data", type=["csv", "xlsx"], key="spend_channel")
-        with col2:
-            visits_file = st.file_uploader("Visits Data", type=["csv", "xlsx"], key="visits_channel")
-        
-        if spend_file and visits_file:
-            spend_df = load_data(spend_file)
-            visits_df = load_data(visits_file)
-            
-            # Ensure we have the required columns
-            if 'Spend' not in spend_df.columns:
-                st.error("Spend data must contain a 'Spend' column")
-                return
-            if 'Visits' not in visits_df.columns:
-                st.error("Visits data must contain a 'Visits' column")
-                return
-            
-            result = calculate_cpv(spend_df, visits_df, by_creative=False)
-            st.dataframe(result.style.format({
-                'Spend': '${:,.0f}',
-                'Visits': '{:,.0f}',
-                'CPV': '${:,.2f}'
-            }))
-            
-            excel_data = download_excel(result, sheet_name='CPV by Channel')
+    st.title("📊 Attribution Optimization Report")
+    st.markdown("Upload all 3 files and enter the **solID** to see your optimization summary.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        conversions_file = st.file_uploader("🔹 Upload pareto_alldecomp_matrix CSV", type="csv")
+        preprocessed_file = st.file_uploader("🔹 Upload Reallocation CSV", type="csv")
+    with col2:
+        spends_file = st.file_uploader("🔹 Upload Raw Data Excel", type="xlsx")
+        solID_value = st.text_input("🔸 Enter solID (e.g., 4_9407_1)")
+
+    if conversions_file and spends_file and preprocessed_file and solID_value:
+        try:
+            conversions_df = load_conversions(conversions_file, solID_value)
+            spends_df = load_spends(spends_file)
+            preprocessed_df = load_preprocessed(preprocessed_file)
+
+            final_df = merge_data(conversions_df, spends_df, preprocessed_df)
+            display_df = format_df_for_display(final_df)
+
+            st.subheader("✅ Optimization Summary Table")
+            st.dataframe(display_df, use_container_width=True)
+
+            # KPIs
+            st.subheader("📈 Overall KPIs")
+            budget_change, response_change, cpa_change = calculate_kpis(final_df)
+
+            kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
+            kpi_col1.metric("Budget Change", f"{budget_change:.2f}%")
+            kpi_col2.metric("Response Change", f"{response_change:.2f}%")
+            kpi_col3.metric("CPA Change", f"{cpa_change:.2f}%", delta_color="inverse")
+
+            # Download button
             st.download_button(
-                label="📥 Download CPV by Channel",
-                data=excel_data,
-                file_name="cpv_by_channel.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                label="📥 Download Optimization Report as Excel",
+                data=to_excel_bytes(final_df),
+                file_name="optimization_summary.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-    
-    with tab2:
-        st.subheader("CPV by Channel & Creative")
-        st.info("Upload your channel-creative spend and visits data")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            spend_file = st.file_uploader("Spend Data", type=["csv", "xlsx"], key="spend_creative")
-        with col2:
-            visits_file = st.file_uploader("Visits Data", type=["csv", "xlsx"], key="visits_creative")
-        
-        if spend_file and visits_file:
-            spend_df = load_data(spend_file)
-            visits_df = load_data(visits_file)
-            
-            # Ensure we have the required columns
-            if 'Spend' not in spend_df.columns or 'Creative' not in spend_df.columns:
-                st.error("Spend data must contain both 'Spend' and 'Creative' columns")
-                return
-            if 'Visits' not in visits_df.columns or 'Creative' not in visits_df.columns:
-                st.error("Visits data must contain both 'Visits' and 'Creative' columns")
-                return
-            
-            result = calculate_cpv(spend_df, visits_df, by_creative=True)
-            st.dataframe(result.style.format({
-                'Spend': '${:,.0f}',
-                'Visits': '{:,.0f}',
-                'CPV': '${:,.2f}'
-            }))
-            
-            excel_data = download_excel(result, sheet_name='CPV by Channel-Creative')
-            st.download_button(
-                label="📥 Download CPV by Channel-Creative",
-                data=excel_data,
-                file_name="cpv_by_channel_creative.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
+
+        except Exception as e:
+            st.error(f"❌ An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
