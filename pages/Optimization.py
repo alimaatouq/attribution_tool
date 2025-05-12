@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 from openpyxl import load_workbook
+from io import BytesIO
 
 def load_conversions(file_path, solID_value):
     """Load and process the conversions data filtered by solID."""
@@ -105,39 +106,97 @@ def format_number(number, is_currency=False, is_percentage=False, decimals=0):
     else:
         return f"{number:,.{decimals}f}"
 
+def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
+    """Convert DataFrame and KPIs to Excel in memory with exact formatting from original code."""
+    output = BytesIO()
+    
+    # Create a copy of the DataFrame for Excel formatting
+    excel_df = df.copy()
+    
+    # Apply all the same formatting as in your original code
+    excel_df['old_budget'] = excel_df['old_budget'].map('${:,.0f}'.format)
+    excel_df['new_budget'] = excel_df['new_budget'].map('${:,.0f}'.format)
+    excel_df['old_response'] = excel_df['old_response'].fillna(0).map('{:,.0f}'.format)
+    excel_df['new_response'] = excel_df['new_response'].fillna(0).map('{:,.0f}'.format)
+    excel_df['abs budg change'] = excel_df['abs budg change'].map('${:,.0f}'.format)
+    excel_df['budget change'] = excel_df['budget change'].map('{:.1%}'.format)
+    excel_df['resp change'] = excel_df['resp change'].map('{:.3f}'.format)
+    
+    # Create Excel writer
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    excel_df.to_excel(writer, sheet_name='Data', index=False)
+    
+    workbook = writer.book
+    worksheet = writer.sheets['Data']
+    
+    # Set column widths
+    worksheet.set_column('A:A', 12)  # channel
+    worksheet.set_column('B:C', 12)  # budgets
+    worksheet.set_column('D:E', 12)  # responses
+    worksheet.set_column('F:F', 12)  # budget change
+    worksheet.set_column('G:G', 12)  # resp change
+    worksheet.set_column('H:H', 12)  # abs budg change
+    
+    # Find the next empty row
+    last_row = len(excel_df) + 2
+    
+    # Write the KPIs exactly as in original code
+    worksheet.write(last_row, 0, 'Overall KPIs:')
+    worksheet.write(last_row + 1, 0, 'Budget Change:')
+    worksheet.write(last_row + 1, 1, f'{budget_kpi:.1f}%')
+    worksheet.write(last_row + 2, 0, 'Response Change:')
+    worksheet.write(last_row + 2, 1, f'{response_kpi:.1f}%')
+    worksheet.write(last_row + 3, 0, 'CPA Change:')
+    worksheet.write(last_row + 3, 1, f'{cpa_kpi:.1f}%')
+    
+    writer.close()
+    processed_data = output.getvalue()
+    return processed_data
+
 def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
-    """Display the dashboard in Streamlit."""
+    """Display the dashboard in Streamlit and provide download button."""
     st.subheader("Channel Performance Analysis")
-    st.dataframe(
-        final_df.style.format({
-            'old_budget': '${:,.0f}'.format,
-            'new_budget': '${:,.0f}'.format,
-            'old_response': '{:,.0f}'.format,
-            'new_response': '{:,.0f}'.format,
-            'budget change': '{:.1%}'.format,
-            'resp change': '{:.3f}'.format,
-            'abs budg change': '${:,.0f}'.format
-        }),
-        use_container_width=True
-    )
+    
+    # Create a copy for display purposes
+    display_df = final_df.copy()
+    
+    # Format exactly as in original code
+    display_df['old_budget'] = display_df['old_budget'].map('${:,.0f}'.format)
+    display_df['new_budget'] = display_df['new_budget'].map('${:,.0f}'.format)
+    display_df['old_response'] = display_df['old_response'].fillna(0).map('{:,.0f}'.format)
+    display_df['new_response'] = display_df['new_response'].fillna(0).map('{:,.0f}'.format)
+    display_df['abs budg change'] = display_df['abs budg change'].map('${:,.0f}'.format)
+    display_df['budget change'] = display_df['budget change'].map('{:.1%}'.format)
+    display_df['resp change'] = display_df['resp change'].map('{:.3f}'.format)
+    
+    st.dataframe(display_df, use_container_width=True)
 
     st.subheader("Overall KPIs:")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Budget Change:", format_number(budget_change_kpi / 100, is_percentage=True, decimals=1))
-        st.metric("CPA Change:", format_number(cpa_change / 100, is_percentage=True, decimals=1))
+        st.metric("Budget Change:", f"{budget_change_kpi:.1f}%")
+        st.metric("CPA Change:", f"{cpa_change:.1f}%")
     with col2:
-        st.metric("Response Change:", format_number(response_change_kpi / 100, is_percentage=True, decimals=1))
+        st.metric("Response Change:", f"{response_change_kpi:.1f}%")
+
+    excel_file = to_excel(final_df, budget_change_kpi, response_change_kpi, cpa_change)
+
+    st.download_button(
+        label="Download as Excel",
+        data=excel_file,
+        file_name="optimization.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 def main():
-    st.title("Marketing Budget and Response Analysis")
+    st.title("Budget Optimization Analysis")
 
     # File uploaders
-    conversions_file = st.file_uploader("Upload Conversions CSV File", type=["csv"])
-    spends_file = st.file_uploader("Upload Spends Excel File", type=["xlsx"])
-    preprocessed_file = st.file_uploader("Upload Preprocessed CSV File", type=["csv"])
+    conversions_file = st.file_uploader("Upload pareto_alldecomp_matrix CSV File", type=["csv"])
+    spends_file = st.file_uploader("Upload Raw Data Excel File", type=["xlsx"])
+    preprocessed_file = st.file_uploader("Upload reallocation CSV File", type=["csv"])
 
-    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10")
+    sol_id_to_filter = st.text_input("Enter solID to filter:")
 
     if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
         with st.spinner("Loading and processing data..."):
