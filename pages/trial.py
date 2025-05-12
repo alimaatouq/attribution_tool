@@ -142,17 +142,20 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
     worksheet.write_string(last_row + 3, 0, 'CPA Change:')
 
-    print(f"[Inside to_excel BEFORE writing CPA] CPA Change Type: {type(cpa_kpi)}, Value: {cpa_kpi}") # Corrected line
+    print(f"[Inside to_excel BEFORE isnan/isinf] CPA Change Type: {type(cpa_kpi)}, Value: {cpa_kpi}")
 
-    if pd.isna(cpa_kpi) or pd.isinf(cpa_kpi):
-        worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
+    if isinstance(cpa_kpi, (int, float)):
+        if pd.isna(cpa_kpi) or pd.isinf(cpa_kpi):
+            worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
+        else:
+            try:
+                worksheet.write_number(last_row + 3, 1, cpa_kpi / 100, percentage_format)
+                print("[Inside to_excel AFTER writing CPA] CPA Change written successfully.")
+            except Exception as e:
+                print(f"[Inside to_excel ERROR writing CPA]: {e}")
+                worksheet.write_string(last_row + 3, 1, 'Error')
     else:
-        try:
-            worksheet.write_number(last_row + 3, 1, cpa_kpi / 100, percentage_format)
-            print("[Inside to_excel AFTER writing CPA] CPA Change written successfully.")
-        except Exception as e:
-            print(f"[Inside to_excel ERROR writing CPA]: {e}")
-            worksheet.write_string(last_row + 3, 1, 'Error')
+        worksheet.write_string(last_row + 3, 1, str(cpa_kpi)) # Write the non-numeric value as a string
 
     writer.close()
     processed_data = output.getvalue()
