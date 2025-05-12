@@ -239,6 +239,8 @@ def main():
                 final_df['old_response'] = final_df['old_response'].fillna(0)
                 final_df['new_response'] = final_df['new_response'].fillna(0)
 
+                print(f"CPA Change: {cpa_change}") # Add this line
+
                 display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change)
 
 if __name__ == "__main__":
