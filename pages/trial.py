@@ -107,65 +107,47 @@ def format_number(number, is_currency=False, is_percentage=False, decimals=0):
         return f"{number:,.{decimals}f}"
 
 def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
-    """Convert DataFrame and KPIs to Excel in memory with proper formatting."""
+    """Convert DataFrame and KPIs to Excel in memory with exact formatting from original code."""
     output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
     
-    # Write the DataFrame without index and with column headers
-    df.to_excel(writer, sheet_name='Data', index=False, startrow=0)
+    # Create a copy of the DataFrame for Excel formatting
+    excel_df = df.copy()
+    
+    # Apply all the same formatting as in your original code
+    excel_df['old_budget'] = excel_df['old_budget'].map('${:,.0f}'.format)
+    excel_df['new_budget'] = excel_df['new_budget'].map('${:,.0f}'.format)
+    excel_df['old_response'] = excel_df['old_response'].fillna(0).map('{:,.0f}'.format)
+    excel_df['new_response'] = excel_df['new_response'].fillna(0).map('{:,.0f}'.format)
+    excel_df['abs budg change'] = excel_df['abs budg change'].map('${:,.0f}'.format)
+    excel_df['budget change'] = excel_df['budget change'].map('{:.1%}'.format)
+    excel_df['resp change'] = excel_df['resp change'].map('{:.3f}'.format)
+    
+    # Create Excel writer
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    excel_df.to_excel(writer, sheet_name='Data', index=False)
     
     workbook = writer.book
     worksheet = writer.sheets['Data']
     
-    # Add formatting
-    header_format = workbook.add_format({
-        'bold': True,
-        'text_wrap': True,
-        'valign': 'top',
-        'fg_color': '#D7E4BC',
-        'border': 1
-    })
-    
-    currency_format = workbook.add_format({'num_format': '$#,##0'})
-    percentage_format = workbook.add_format({'num_format': '0.0%'})
-    decimal_format = workbook.add_format({'num_format': '0.000'})
-    negative_currency_format = workbook.add_format({'num_format': '($#,##0)'})
-    negative_percentage_format = workbook.add_format({'num_format': '0.0%', 'font_color': 'red'})
-    
-    # Apply column formats
-    worksheet.set_column('A:A', 12)  # Channel column width
-    worksheet.set_column('B:C', 12, currency_format)  # Budget columns
-    worksheet.set_column('D:E', 12)  # Response columns
-    worksheet.set_column('F:F', 12, percentage_format)  # Budget change %
-    worksheet.set_column('G:G', 12, decimal_format)  # Response change ratio
-    worksheet.set_column('H:H', 12, negative_currency_format)  # Absolute budget change
-    
-    # Format header
-    for col_num, value in enumerate(df.columns.values):
-        worksheet.write(0, col_num, value, header_format)
+    # Set column widths
+    worksheet.set_column('A:A', 12)  # channel
+    worksheet.set_column('B:C', 12)  # budgets
+    worksheet.set_column('D:E', 12)  # responses
+    worksheet.set_column('F:F', 12)  # budget change
+    worksheet.set_column('G:G', 12)  # resp change
+    worksheet.set_column('H:H', 12)  # abs budg change
     
     # Find the next empty row
-    last_row = len(df) + 2
+    last_row = len(excel_df) + 2
     
-    # Write the KPIs with formatting
-    kpi_format = workbook.add_format({'bold': True})
-    worksheet.write(last_row, 0, 'Overall KPIs:', kpi_format)
+    # Write the KPIs exactly as in original code
+    worksheet.write(last_row, 0, 'Overall KPIs:')
     worksheet.write(last_row + 1, 0, 'Budget Change:')
-    worksheet.write(last_row + 1, 1, f'{budget_kpi/100:.1%}', percentage_format)
+    worksheet.write(last_row + 1, 1, f'{budget_kpi:.1f}%')
     worksheet.write(last_row + 2, 0, 'Response Change:')
-    worksheet.write(last_row + 2, 1, f'{response_kpi/100:.1%}', percentage_format)
+    worksheet.write(last_row + 2, 1, f'{response_kpi:.1f}%')
     worksheet.write(last_row + 3, 0, 'CPA Change:')
-    worksheet.write(last_row + 3, 1, f'{cpa_kpi/100:.1%}', percentage_format)
-    
-    # Format negative values
-    for row in range(1, len(df)+1):
-        # Format negative budget changes in red
-        if df.iloc[row-1, 5] < 0:  # budget change column
-            worksheet.write(row, 5, df.iloc[row-1, 5], negative_percentage_format)
-        
-        # Format response changes below 1 in red
-        if df.iloc[row-1, 6] < 1:  # resp change column
-            worksheet.write(row, 6, df.iloc[row-1, 6], workbook.add_format({'num_format': '0.000', 'font_color': 'red'}))
+    worksheet.write(last_row + 3, 1, f'{cpa_kpi:.1f}%')
     
     writer.close()
     processed_data = output.getvalue()
@@ -174,24 +156,28 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
 def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
     """Display the dashboard in Streamlit and provide download button."""
     st.subheader("Channel Performance Analysis")
-    formatted_df = final_df.copy()
-    formatted_df['old_budget'] = formatted_df['old_budget'].map('${:,.0f}'.format)
-    formatted_df['new_budget'] = formatted_df['new_budget'].map('${:,.0f}'.format)
-    formatted_df['old_response'] = formatted_df['old_response'].map('{:,.0f}'.format)
-    formatted_df['new_response'] = formatted_df['new_response'].map('{:,.0f}'.format)
-    formatted_df['budget change'] = formatted_df['budget change'].map('{:.1%}'.format)
-    formatted_df['resp change'] = formatted_df['resp change'].map('{:.3f}'.format)
-    formatted_df['abs budg change'] = formatted_df['abs budg change'].map('${:,.0f}'.format)
-
-    st.dataframe(formatted_df, use_container_width=True)
+    
+    # Create a copy for display purposes
+    display_df = final_df.copy()
+    
+    # Format exactly as in original code
+    display_df['old_budget'] = display_df['old_budget'].map('${:,.0f}'.format)
+    display_df['new_budget'] = display_df['new_budget'].map('${:,.0f}'.format)
+    display_df['old_response'] = display_df['old_response'].fillna(0).map('{:,.0f}'.format)
+    display_df['new_response'] = display_df['new_response'].fillna(0).map('{:,.0f}'.format)
+    display_df['abs budg change'] = display_df['abs budg change'].map('${:,.0f}'.format)
+    display_df['budget change'] = display_df['budget change'].map('{:.1%}'.format)
+    display_df['resp change'] = display_df['resp change'].map('{:.3f}'.format)
+    
+    st.dataframe(display_df, use_container_width=True)
 
     st.subheader("Overall KPIs:")
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Budget Change:", format_number(budget_change_kpi / 100, is_percentage=True, decimals=1))
-        st.metric("CPA Change:", format_number(cpa_change / 100, is_percentage=True, decimals=1))
+        st.metric("Budget Change:", f"{budget_change_kpi:.1f}%")
+        st.metric("CPA Change:", f"{cpa_change:.1f}%")
     with col2:
-        st.metric("Response Change:", format_number(response_change_kpi / 100, is_percentage=True, decimals=1))
+        st.metric("Response Change:", f"{response_change_kpi:.1f}%")
 
     excel_file = to_excel(final_df, budget_change_kpi, response_change_kpi, cpa_change)
 
@@ -201,7 +187,6 @@ def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_chan
         file_name="marketing_analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
 
 def main():
     st.title("Marketing Budget and Response Analysis")
