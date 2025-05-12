@@ -141,6 +141,9 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet.write_string(last_row + 2, 0, 'Response Change:')
     worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
     worksheet.write_string(last_row + 3, 0, 'CPA Change:')
+
+    print(f"[Inside to_excel] CPA Change: {cpa_change}") # Added print
+
     if pd.isna(cpa_change) or pd.isinf(cpa_change):
         worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
     else:
@@ -149,6 +152,7 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     writer.close()
     processed_data = output.getvalue()
     return processed_data
+    
 def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
     """Display the dashboard in Streamlit."""
     st.subheader("Channel Performance Analysis")
@@ -213,10 +217,11 @@ def main():
                 total_new_budget = final_df['Sum_optmSpendUnit'].sum()
                 total_old_budget = final_df['Spend'].sum()
 
-                # Avoid division by zero
                 response_change_kpi = ((total_new_response / total_old_response) - 1) * 100 if total_old_response != 0 else 0
                 budget_change_kpi = ((total_new_budget - total_old_budget) / total_old_budget) * 100 if total_old_budget != 0 else 0
                 cpa_change = ((total_new_budget / total_new_response) / (total_old_budget / total_old_response) - 1) * 100 if total_new_response != 0 and total_old_response != 0 and total_old_budget != 0 else 0
+
+                print(f"[Before display_dashboard] CPA Change: {cpa_change}") # Added print
 
                 # Rename and select desired columns
                 final_df = final_df.rename(columns={
@@ -238,8 +243,6 @@ def main():
                 # Fill NaN values with 0 before converting to integer
                 final_df['old_response'] = final_df['old_response'].fillna(0)
                 final_df['new_response'] = final_df['new_response'].fillna(0)
-
-                print(f"CPA Change: {cpa_change}") # Add this line
 
                 display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change)
 
