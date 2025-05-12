@@ -142,8 +142,8 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
     worksheet.write_string(last_row + 3, 0, 'CPA Change:')
 
-    print(f"[Inside to_excel] CPA Change: {cpa_change}") # Added print
-
+    print(f"[Inside to_excel] CPA Change: {cpa_kpi}")
+    
     if pd.isna(cpa_change) or pd.isinf(cpa_change):
         worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
     else:
