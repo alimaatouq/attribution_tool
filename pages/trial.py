@@ -189,14 +189,14 @@ def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_chan
     )
 
 def main():
-    st.title("Marketing Budget and Response Analysis")
+    st.title("Budget Optimization Analysis")
 
     # File uploaders
-    conversions_file = st.file_uploader("Upload Conversions CSV File", type=["csv"])
-    spends_file = st.file_uploader("Upload Spends Excel File", type=["xlsx"])
-    preprocessed_file = st.file_uploader("Upload Preprocessed CSV File", type=["csv"])
+    conversions_file = st.file_uploader("Upload pareto_alldecomp_matrix CSV File", type=["csv"])
+    spends_file = st.file_uploader("Upload Raw Data Excel File", type=["xlsx"])
+    preprocessed_file = st.file_uploader("Upload reallocation CSV File", type=["csv"])
 
-    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10")
+    sol_id_to_filter = st.text_input("Enter solID to filter:")
 
     if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
         with st.spinner("Loading and processing data..."):
