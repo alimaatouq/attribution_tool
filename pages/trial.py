@@ -3,6 +3,7 @@ import pandas as pd
 import re
 from openpyxl import load_workbook
 from io import BytesIO
+import numpy as np
 
 def load_conversions(file_path, solID_value):
     """Load and process the conversions data filtered by solID."""
@@ -114,38 +115,12 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     workbook = writer.book
     worksheet = writer.sheets['Data']
 
-    # Define formatting
-    currency_format = workbook.add_format({'num_format': '#,##0'})
-    percentage_format = workbook.add_format({'num_format': '0.0%'})
-    number_format = workbook.add_format({'num_format': '#,##0'})
-    number_3decimal_format = workbook.add_format({'num_format': '0.000'})
-    currency_negative_format = workbook.add_format({'num_format': '#,##0', 'color': 'red'})
-
-    # Apply formatting to the DataFrame columns
-    worksheet.set_column('B:C', None, currency_format)  # old_budget, new_budget
-    worksheet.set_column('D:E', None, number_format)    # old_response, new_response
-    worksheet.set_column('F:F', None, percentage_format) # budget change
-    worksheet.set_column('G:G', None, number_3decimal_format) # resp change
-    worksheet.set_column('H:H', None, currency_format) # abs budg change
-
-    # Apply red color to negative absolute budget change
-    for row_num, abs_change in enumerate(df['abs budg change'], start=1):
-        if abs_change < 0:
-            worksheet.write_number(row_num, 7, abs_change, currency_negative_format)
-
-    # Write Overall KPIs
-    last_row = len(df) + 2
-    worksheet.write_string(last_row, 0, 'Overall KPIs:')
-    worksheet.write_string(last_row + 1, 0, 'Budget Change:')
-    worksheet.write_number(last_row + 1, 1, budget_kpi / 100, percentage_format)
-    worksheet.write_string(last_row + 2, 0, 'Response Change:')
-    worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
-    worksheet.write_string(last_row + 3, 0, 'CPA Change:')
+    # [previous code remains the same until the CPA check]
 
     print(f"[Inside to_excel BEFORE isnan/isinf] CPA Change Type: {type(cpa_kpi)}, Value: {cpa_kpi}")
 
     if isinstance(cpa_kpi, (int, float)):
-        if pd.isna(cpa_kpi) or pd.isinf(cpa_kpi):
+        if pd.isna(cpa_kpi) or np.isinf(cpa_kpi):  # Changed pd.isinf to np.isinf
             worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
         else:
             try:
@@ -160,38 +135,6 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     writer.close()
     processed_data = output.getvalue()
     return processed_data
-    
-def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
-    """Display the dashboard in Streamlit."""
-    st.subheader("Channel Performance Analysis")
-    formatted_df = final_df.copy()
-    formatted_df['old_budget'] = formatted_df['old_budget'].map('${:,.0f}'.format)
-    formatted_df['new_budget'] = formatted_df['new_budget'].map('${:,.0f}'.format)
-    formatted_df['old_response'] = formatted_df['old_response'].map('{:,.0f}'.format)
-    formatted_df['new_response'] = formatted_df['new_response'].map('{:,.0f}'.format)
-    formatted_df['budget change'] = formatted_df['budget change'].map('{:.1%}'.format)
-    formatted_df['resp change'] = formatted_df['resp change'].map('{:.3f}'.format)
-    formatted_df['abs budg change'] = formatted_df['abs budg change'].map('${:,.0f}'.format)
-
-    st.dataframe(formatted_df, use_container_width=True)
-
-    st.subheader("Overall KPIs:")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Budget Change:", format_number(budget_change_kpi / 100, is_percentage=True, decimals=1))
-        st.metric("CPA Change:", format_number(cpa_change / 100, is_percentage=True, decimals=1))
-    with col2:
-        st.metric("Response Change:", format_number(response_change_kpi / 100, is_percentage=True, decimals=1))
-
-    excel_file = to_excel(final_df, budget_change_kpi, response_change_kpi, cpa_change)
-
-    st.download_button(
-        label="Download as Excel",
-        data=excel_file,
-        file_name="marketing_analysis.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-
 
 def main():
     st.title("Marketing Budget and Response Analysis")
