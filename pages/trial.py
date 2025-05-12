@@ -225,11 +225,16 @@ def main():
                 total_new_budget = final_df['Sum_optmSpendUnit'].sum()
                 total_old_budget = final_df['Spend'].sum()
 
+                print(f"[MAIN] total_new_budget: {total_new_budget}, type: {type(total_new_budget)}")
+                print(f"[MAIN] total_new_response: {total_new_response}, type: {type(total_new_response)}")
+                print(f"[MAIN] total_old_budget: {total_old_budget}, type: {type(total_old_budget)}")
+                print(f"[MAIN] total_old_response: {total_old_response}, type: {type(total_old_response)}")
+
                 response_change_kpi = ((total_new_response / total_old_response) - 1) * 100 if total_old_response != 0 else 0
                 budget_change_kpi = ((total_new_budget - total_old_budget) / total_old_budget) * 100 if total_old_budget != 0 else 0
                 cpa_change = ((total_new_budget / total_new_response) / (total_old_budget / total_old_response) - 1) * 100 if total_new_response != 0 and total_old_response != 0 and total_old_budget != 0 else 0
 
-                print(f"[Before display_dashboard] CPA Change: {cpa_change}") # Added print
+                print(f"[MAIN] cpa_change: {cpa_change}, type: {type(cpa_change)}") # Existing print
 
                 # Rename and select desired columns
                 final_df = final_df.rename(columns={
@@ -253,6 +258,9 @@ def main():
                 final_df['new_response'] = final_df['new_response'].fillna(0)
 
                 display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change)
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
