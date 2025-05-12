@@ -141,12 +141,14 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet.write_string(last_row + 2, 0, 'Response Change:')
     worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
     worksheet.write_string(last_row + 3, 0, 'CPA Change:')
-    worksheet.write_number(last_row + 3, 1, cpa_change / 100, percentage_format)
+    if pd.isna(cpa_change) or pd.isinf(cpa_change):
+        worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
+    else:
+        worksheet.write_number(last_row + 3, 1, cpa_change / 100, percentage_format)
 
     writer.close()
     processed_data = output.getvalue()
     return processed_data
-
 def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
     """Display the dashboard in Streamlit."""
     st.subheader("Channel Performance Analysis")
