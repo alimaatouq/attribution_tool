@@ -115,11 +115,11 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet = writer.sheets['Data']
 
     # Define formatting
-    currency_format = workbook.add_format({'num_format': '#,##0.00'})
+    currency_format = workbook.add_format({'num_format': '#,##0'})
     percentage_format = workbook.add_format({'num_format': '0.0%'})
     number_format = workbook.add_format({'num_format': '#,##0'})
     number_3decimal_format = workbook.add_format({'num_format': '0.000'})
-    currency_negative_format = workbook.add_format({'num_format': '#,##0.00', 'color': 'red'})
+    currency_negative_format = workbook.add_format({'num_format': '#,##0', 'color': 'red'})
 
     # Apply formatting to the DataFrame columns
     worksheet.set_column('B:C', None, currency_format)  # old_budget, new_budget
@@ -177,6 +177,7 @@ def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_chan
         file_name="marketing_analysis.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
 
 def main():
     st.title("Marketing Budget and Response Analysis")
