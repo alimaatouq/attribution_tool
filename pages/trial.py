@@ -139,14 +139,24 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
 def main():
     st.title("Marketing Budget and Response Analysis")
 
-    # File uploaders
-    conversions_file = st.file_uploader("Upload Conversions CSV File", type=["csv"])
-    spends_file = st.file_uploader("Upload Spends Excel File", type=["xlsx"])
-    preprocessed_file = st.file_uploader("Upload Preprocessed CSV File", type=["csv"])
+    # File uploaders with unique keys
+    conversions_file = st.file_uploader(
+        "Upload Conversions CSV File", 
+        type=["csv"],
+        key="conversions_uploader"
+    )
+    spends_file = st.file_uploader(
+        "Upload Spends Excel File", 
+        type=["xlsx"],
+        key="spends_uploader"
+    )
+    preprocessed_file = st.file_uploader(
+        "Upload Preprocessed CSV File", 
+        type=["csv"],
+        key="preprocessed_uploader"
+    )
 
-    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10")
-
-    if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
+    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10", key="sol_id_input")
         with st.spinner("Loading and processing data..."):
             # Load and process the data
             conversions_df = load_conversions(conversions_file, sol_id_to_filter)
