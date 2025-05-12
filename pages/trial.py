@@ -107,26 +107,66 @@ def format_number(number, is_currency=False, is_percentage=False, decimals=0):
         return f"{number:,.{decimals}f}"
 
 def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
-    """Convert DataFrame and KPIs to Excel in memory."""
+    """Convert DataFrame and KPIs to Excel in memory with proper formatting."""
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    df.to_excel(writer, sheet_name='Data', index=False)
-
+    
+    # Write the DataFrame without index and with column headers
+    df.to_excel(writer, sheet_name='Data', index=False, startrow=0)
+    
     workbook = writer.book
     worksheet = writer.sheets['Data']
-
+    
+    # Add formatting
+    header_format = workbook.add_format({
+        'bold': True,
+        'text_wrap': True,
+        'valign': 'top',
+        'fg_color': '#D7E4BC',
+        'border': 1
+    })
+    
+    currency_format = workbook.add_format({'num_format': '$#,##0'})
+    percentage_format = workbook.add_format({'num_format': '0.0%'})
+    decimal_format = workbook.add_format({'num_format': '0.000'})
+    negative_currency_format = workbook.add_format({'num_format': '($#,##0)'})
+    negative_percentage_format = workbook.add_format({'num_format': '0.0%', 'font_color': 'red'})
+    
+    # Apply column formats
+    worksheet.set_column('A:A', 12)  # Channel column width
+    worksheet.set_column('B:C', 12, currency_format)  # Budget columns
+    worksheet.set_column('D:E', 12)  # Response columns
+    worksheet.set_column('F:F', 12, percentage_format)  # Budget change %
+    worksheet.set_column('G:G', 12, decimal_format)  # Response change ratio
+    worksheet.set_column('H:H', 12, negative_currency_format)  # Absolute budget change
+    
+    # Format header
+    for col_num, value in enumerate(df.columns.values):
+        worksheet.write(0, col_num, value, header_format)
+    
     # Find the next empty row
     last_row = len(df) + 2
-
-    # Write the KPIs
-    worksheet.write(last_row, 0, 'Overall KPIs:')
+    
+    # Write the KPIs with formatting
+    kpi_format = workbook.add_format({'bold': True})
+    worksheet.write(last_row, 0, 'Overall KPIs:', kpi_format)
     worksheet.write(last_row + 1, 0, 'Budget Change:')
-    worksheet.write(last_row + 1, 1, f'{budget_kpi:.1f}%')
+    worksheet.write(last_row + 1, 1, f'{budget_kpi/100:.1%}', percentage_format)
     worksheet.write(last_row + 2, 0, 'Response Change:')
-    worksheet.write(last_row + 2, 1, f'{response_kpi:.1f}%')
+    worksheet.write(last_row + 2, 1, f'{response_kpi/100:.1%}', percentage_format)
     worksheet.write(last_row + 3, 0, 'CPA Change:')
-    worksheet.write(last_row + 3, 1, f'{cpa_kpi:.1f}%')
-
+    worksheet.write(last_row + 3, 1, f'{cpa_kpi/100:.1%}', percentage_format)
+    
+    # Format negative values
+    for row in range(1, len(df)+1):
+        # Format negative budget changes in red
+        if df.iloc[row-1, 5] < 0:  # budget change column
+            worksheet.write(row, 5, df.iloc[row-1, 5], negative_percentage_format)
+        
+        # Format response changes below 1 in red
+        if df.iloc[row-1, 6] < 1:  # resp change column
+            worksheet.write(row, 6, df.iloc[row-1, 6], workbook.add_format({'num_format': '0.000', 'font_color': 'red'}))
+    
     writer.close()
     processed_data = output.getvalue()
     return processed_data
