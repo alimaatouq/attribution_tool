@@ -1,85 +1,193 @@
 import streamlit as st
 import pandas as pd
 import re
+from openpyxl import load_workbook
 
-# Your data loading and transformation functions would be imported here
-# from your_module import load_conversions, load_spends, load_preprocessed, merge_data
+def load_conversions(file_path, solID_value):
+    """Load and process the conversions data filtered by solID."""
+    try:
+        df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        st.error(f"Error: Conversion file not found at {file_path}")
+        return None
 
-def kpi_summary_app():
-    st.set_page_config(page_title="KPI Summary", layout="wide")
-    st.title("Budget Optimization Summary")
+    if 'solID' not in df.columns:
+        st.error("Error: The 'solID' column is missing from the conversion file.")
+        return None
 
-    # File inputs
-    conversions_file = st.file_uploader("Upload Conversions CSV", type="csv", key="conversions")
-    spends_file = st.file_uploader("Upload Spends Excel", type="xlsx", key="spends")
-    preprocessed_file = st.file_uploader("Upload Preprocessed CSV", type="csv", key="preprocessed")
-    sol_id_to_filter = st.text_input("Enter solID to filter", value="4_722_10")
+    df = df[df['solID'] == solID_value]  # Filter by solID
 
-    if conversions_file and spends_file and preprocessed_file:
-        conversions_df = load_conversions(conversions_file, sol_id_to_filter)
-        spends_df = load_spends(spends_file)
-        preprocessed_df = load_preprocessed(preprocessed_file)
+    channel_data = {}
+    for col in df.columns:
+        if 'spend' not in col.lower() or col == 'KPI_Website_Conversions':
+            continue
+        match = re.match(r'([A-Za-z]+)', col)
+        if match:
+            channel = match.group(1)
+            channel_data[channel] = channel_data.get(channel, 0) + pd.to_numeric(df[col], errors='coerce').sum()
 
-        final_df = merge_data(conversions_df, spends_df, preprocessed_df)
+    conversions_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Conversions'])
+    return conversions_df
 
-        # Compute metrics
-        final_df['New Response'] = final_df['Conversions'] * final_df['Response_Change']
-        final_df['Budget Change'] = ((final_df['Sum_optmSpendUnit'] - final_df['Spend']) / final_df['Spend'])
-        final_df['Absolute Budget Change'] = (final_df['Sum_optmSpendUnit'] - final_df['Spend']).round(1)
 
-        # Compute overall KPIs
-        total_new_response = final_df['New Response'].sum()
-        total_old_response = final_df['Conversions'].sum()
-        total_new_budget = final_df['Sum_optmSpendUnit'].sum()
-        total_old_budget = final_df['Spend'].sum()
+def load_spends(file_path):
+    """Load and process the spends data."""
+    try:
+        df = pd.read_excel(file_path)
+    except FileNotFoundError:
+        st.error(f"Error: Spends file not found at {file_path}")
+        return None
 
-        response_change_kpi = ((total_new_response / total_old_response) - 1) * 100
-        budget_change_kpi = ((total_new_budget - total_old_budget) / total_old_budget) * 100
-        cpa_change = ((total_new_budget / total_new_response) / (total_old_budget / total_old_response) - 1) * 100
+    spend_columns = [col for col in df.columns if "spend" in col.lower()]
+    consolidated_columns = [re.sub(r'([_-]\d+)', '', col) for col in spend_columns]
+    channel_data = {}
+    for original_col, consolidated_col in zip(spend_columns, consolidated_columns):
+        match = re.match(r'([A-Za-z]+)', consolidated_col)
+        if match:
+            channel = match.group(1)
+            channel_data[channel] = channel_data.get(channel, 0) + pd.to_numeric(df[original_col], errors='coerce').sum()
+    spends_df = pd.DataFrame(list(channel_data.items()), columns=['Channel', 'Spend'])
+    return spends_df
 
-        # Format columns
-        final_df = final_df.rename(columns={
-            'Channel': 'channel',
-            'Spend': 'old_budget',
-            'Sum_optmSpendUnit': 'new_budget',
-            'Conversions': 'old_response',
-            'New Response': 'new_response',
-            'Change': 'budget change',
-            'Response_Change': 'resp change',
-            'Absolute Budget Change': 'abs budg change'
-        })
+def load_preprocessed(file_path):
+    """Load and process the preprocessed data."""
+    try:
+        df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        st.error(f"Error: Preprocessed file not found at {file_path}")
+        return None
 
-        final_df = final_df[[
-            'channel', 'old_budget', 'new_budget', 'old_response', 'new_response',
-            'budget change', 'resp change', 'abs budg change'
-        ]]
+    df['period_number'] = df['periods'].apply(lambda x: int(re.search(r'\d+', str(x)).group()) if pd.notnull(x) else None)
+    channel_split = df['channels'].str.extract(r'([^_]+)_([^_]+)_(.+)')
+    channel_split.columns = ['Channel', 'channel_type', 'channel_metric']
+    df = pd.concat([df, channel_split], axis=1)
+    groupby_fields = ['Channel']
+    aggregation_dict = {
+        'initSpendUnit': 'sum',
+        'optmSpendUnit': 'sum',
+        'initResponseTotal': 'min',
+        'optmResponseTotal': 'min',
+        'initResponseUnit': 'sum',
+        'optmResponseUnit': 'sum',
+        'period_number': 'mean'
+    }
+    grouped_df = df.groupby(groupby_fields).agg(aggregation_dict).reset_index()
+    if 'initSpendUnit' in grouped_df.columns and 'period_number' in grouped_df.columns:
+        grouped_df['Sum_initSpendUnit'] = (grouped_df['initSpendUnit'] * grouped_df['period_number']).round(1)
+    if 'optmSpendUnit' in grouped_df.columns and 'period_number' in grouped_df.columns:
+        grouped_df['Sum_optmSpendUnit'] = (grouped_df['optmSpendUnit'] * grouped_df['period_number']).round(1)
+    if 'initResponseUnit' in grouped_df.columns and 'period_number' in grouped_df.columns:
+        grouped_df['Sum_initResponseUnit'] = (grouped_df['initResponseUnit'] * grouped_df['period_number']).round(1)
+    if 'optmResponseUnit' in grouped_df.columns and 'period_number' in grouped_df.columns:
+        grouped_df['Sum_optmResponseUnit'] = (grouped_df['optmResponseUnit'] * grouped_df['period_number']).round(1)
+    if 'Sum_optmSpendUnit' in grouped_df.columns and 'Sum_initSpendUnit' in grouped_df.columns:
+        grouped_df['Change'] = round((grouped_df['Sum_optmSpendUnit'] - grouped_df['Sum_initSpendUnit']) / grouped_df['Sum_initSpendUnit'], 3)
+    if 'Sum_optmResponseUnit' in grouped_df.columns and 'Sum_initResponseUnit' in grouped_df.columns:
+        grouped_df['Response_Change'] = round(grouped_df['Sum_optmResponseUnit'] / grouped_df['Sum_initResponseUnit'], 3)
+    columns_to_drop = ['initSpendUnit', 'optmSpendUnit', 'initResponseUnit', 'optmResponseUnit']
+    grouped_df = grouped_df.drop(columns=[col for col in columns_to_drop if col in grouped_df.columns])
+    return grouped_df
 
-        # Fill NaNs and format
-        final_df['old_response'] = final_df['old_response'].fillna(0).map('{:,.0f}'.format)
-        final_df['new_response'] = final_df['new_response'].fillna(0).map('{:,.0f}'.format)
-        final_df['old_budget'] = final_df['old_budget'].map('${:,.0f}'.format)
-        final_df['new_budget'] = final_df['new_budget'].map('${:,.0f}'.format)
-        final_df['abs budg change'] = final_df['abs budg change'].map('${:,.0f}'.format)
-        final_df['budget change'] = final_df['budget change'].map('{:.1%}'.format)
-        final_df['resp change'] = final_df['resp change'].map('{:.3f}'.format)
+def merge_data(conversions_df, spends_df, preprocessed_df):
+    """Merge the three DataFrames on the 'Channel' column."""
+    merged_df = pd.merge(conversions_df, spends_df, on='Channel', how='outer')
+    merged_df = pd.merge(merged_df, preprocessed_df, on='Channel', how='outer')
+    return merged_df
 
-        st.dataframe(final_df.style.format({
-            "old_budget": "${:,.0f}",
-            "new_budget": "${:,.0f}",
-            "old_response": "{:,.0f}",
-            "new_response": "{:,.0f}",
-            "budget change": "{:.1%}",
-            "resp change": "{:.3f}",
-            "abs budg change": "${:,.0f}"
-        }), use_container_width=True)
-
-        # Show Overall KPIs
-        st.markdown("### Overall KPIs")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Budget Change", f"{budget_change_kpi:.1f}%")
-        col2.metric("Response Change", f"{response_change_kpi:.1f}%")
-        col3.metric("CPA Change", f"{cpa_change:.1f}%")
-
+def format_number(number, is_currency=False, is_percentage=False, decimals=0):
+    """Format a number as currency, percentage, or with specified decimals."""
+    if pd.isna(number):
+        return "nan"
+    if is_currency:
+        return f"${number:,.{decimals}f}"
+    elif is_percentage:
+        return f"{number:.{decimals}%}"
     else:
-        st.info("Please upload all required files to proceed.")
+        return f"{number:,.{decimals}f}"
 
+def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
+    """Display the dashboard in Streamlit."""
+    st.subheader("Channel Performance Analysis")
+    st.dataframe(
+        final_df.style.format({
+            'old_budget': '${:,.0f}'.format,
+            'new_budget': '${:,.0f}'.format,
+            'old_response': '{:,.0f}'.format,
+            'new_response': '{:,.0f}'.format,
+            'budget change': '{:.1%}'.format,
+            'resp change': '{:.3f}'.format,
+            'abs budg change': '${:,.0f}'.format
+        }),
+        use_container_width=True
+    )
+
+    st.subheader("Overall KPIs:")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Budget Change:", format_number(budget_change_kpi / 100, is_percentage=True, decimals=1))
+        st.metric("CPA Change:", format_number(cpa_change / 100, is_percentage=True, decimals=1))
+    with col2:
+        st.metric("Response Change:", format_number(response_change_kpi / 100, is_percentage=True, decimals=1))
+
+def main():
+    st.title("Marketing Budget and Response Analysis")
+
+    # File uploaders
+    conversions_file = st.file_uploader("Upload Conversions CSV File", type=["csv"])
+    spends_file = st.file_uploader("Upload Spends Excel File", type=["xlsx"])
+    preprocessed_file = st.file_uploader("Upload Preprocessed CSV File", type=["csv"])
+
+    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10")
+
+    if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
+        with st.spinner("Loading and processing data..."):
+            # Load and process the data
+            conversions_df = load_conversions(conversions_file, sol_id_to_filter)
+            spends_df = load_spends(spends_file)
+            preprocessed_df = load_preprocessed(preprocessed_file)
+
+            if conversions_df is not None and spends_df is not None and preprocessed_df is not None:
+                # Merge dataframes
+                final_df = merge_data(conversions_df, spends_df, preprocessed_df)
+
+                # Compute new metrics
+                final_df['New Response'] = final_df['Conversions'] * final_df['Response_Change']
+                final_df['Budget Change'] = ((final_df['Sum_optmSpendUnit'] - final_df['Spend']) / final_df['Spend'])
+                final_df['Absolute Budget Change'] = (final_df['Sum_optmSpendUnit'] - final_df['Spend']).round(1)
+
+                # Compute overall KPIs
+                total_new_response = final_df['New Response'].sum()
+                total_old_response = final_df['Conversions'].sum()
+                total_new_budget = final_df['Sum_optmSpendUnit'].sum()
+                total_old_budget = final_df['Spend'].sum()
+
+                # Avoid division by zero
+                response_change_kpi = ((total_new_response / total_old_response) - 1) * 100 if total_old_response != 0 else 0
+                budget_change_kpi = ((total_new_budget - total_old_budget) / total_old_budget) * 100 if total_old_budget != 0 else 0
+                cpa_change = ((total_new_budget / total_new_response) / (total_old_budget / total_old_response) - 1) * 100 if total_new_response != 0 and total_old_response != 0 and total_old_budget != 0 else 0
+
+                # Rename and select desired columns
+                final_df = final_df.rename(columns={
+                    'Channel': 'channel',
+                    'Spend': 'old_budget',
+                    'Sum_optmSpendUnit': 'new_budget',
+                    'Conversions': 'old_response',
+                    'New Response': 'new_response',
+                    'Change': 'budget change',
+                    'Response_Change': 'resp change',
+                    'Absolute Budget Change': 'abs budg change'
+                })
+
+                final_df = final_df[[
+                    'channel', 'old_budget', 'new_budget', 'old_response', 'new_response',
+                    'budget change', 'resp change', 'abs budg change'
+                ]]
+
+                # Fill NaN values with 0 before converting to integer
+                final_df['old_response'] = final_df['old_response'].fillna(0)
+                final_df['new_response'] = final_df['new_response'].fillna(0)
+
+                display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change)
+
+if __name__ == "__main__":
+    main()
