@@ -3,7 +3,6 @@ import pandas as pd
 import re
 from openpyxl import load_workbook
 from io import BytesIO
-import numpy as np
 
 def load_conversions(file_path, solID_value):
     """Load and process the conversions data filtered by solID."""
@@ -108,55 +107,73 @@ def format_number(number, is_currency=False, is_percentage=False, decimals=0):
         return f"{number:,.{decimals}f}"
 
 def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
-    """Convert DataFrame and KPIs to Excel in memory with formatting."""
+    """Convert DataFrame and KPIs to Excel in memory."""
     output = BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
     df.to_excel(writer, sheet_name='Data', index=False)
+
     workbook = writer.book
     worksheet = writer.sheets['Data']
 
-    # [previous code remains the same until the CPA check]
+    # Find the next empty row
+    last_row = len(df) + 2
 
-    print(f"[Inside to_excel BEFORE isnan/isinf] CPA Change Type: {type(cpa_kpi)}, Value: {cpa_kpi}")
-
-    if isinstance(cpa_kpi, (int, float)):
-        if pd.isna(cpa_kpi) or np.isinf(cpa_kpi):  # Changed pd.isinf to np.isinf
-            worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
-        else:
-            try:
-                worksheet.write_number(last_row + 3, 1, cpa_kpi / 100, percentage_format)
-                print("[Inside to_excel AFTER writing CPA] CPA Change written successfully.")
-            except Exception as e:
-                print(f"[Inside to_excel ERROR writing CPA]: {e}")
-                worksheet.write_string(last_row + 3, 1, 'Error')
-    else:
-        worksheet.write_string(last_row + 3, 1, str(cpa_kpi)) # Write the non-numeric value as a string
+    # Write the KPIs
+    worksheet.write(last_row, 0, 'Overall KPIs:')
+    worksheet.write(last_row + 1, 0, 'Budget Change:')
+    worksheet.write(last_row + 1, 1, f'{budget_kpi:.1f}%')
+    worksheet.write(last_row + 2, 0, 'Response Change:')
+    worksheet.write(last_row + 2, 1, f'{response_kpi:.1f}%')
+    worksheet.write(last_row + 3, 0, 'CPA Change:')
+    worksheet.write(last_row + 3, 1, f'{cpa_kpi:.1f}%')
 
     writer.close()
     processed_data = output.getvalue()
     return processed_data
 
+def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change):
+    """Display the dashboard in Streamlit and provide download button."""
+    st.subheader("Channel Performance Analysis")
+    formatted_df = final_df.copy()
+    formatted_df['old_budget'] = formatted_df['old_budget'].map('${:,.0f}'.format)
+    formatted_df['new_budget'] = formatted_df['new_budget'].map('${:,.0f}'.format)
+    formatted_df['old_response'] = formatted_df['old_response'].map('{:,.0f}'.format)
+    formatted_df['new_response'] = formatted_df['new_response'].map('{:,.0f}'.format)
+    formatted_df['budget change'] = formatted_df['budget change'].map('{:.1%}'.format)
+    formatted_df['resp change'] = formatted_df['resp change'].map('{:.3f}'.format)
+    formatted_df['abs budg change'] = formatted_df['abs budg change'].map('${:,.0f}'.format)
+
+    st.dataframe(formatted_df, use_container_width=True)
+
+    st.subheader("Overall KPIs:")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Budget Change:", format_number(budget_change_kpi / 100, is_percentage=True, decimals=1))
+        st.metric("CPA Change:", format_number(cpa_change / 100, is_percentage=True, decimals=1))
+    with col2:
+        st.metric("Response Change:", format_number(response_change_kpi / 100, is_percentage=True, decimals=1))
+
+    excel_file = to_excel(final_df, budget_change_kpi, response_change_kpi, cpa_change)
+
+    st.download_button(
+        label="Download as Excel",
+        data=excel_file,
+        file_name="marketing_analysis.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
 def main():
     st.title("Marketing Budget and Response Analysis")
 
-    # File uploaders with unique keys
-    conversions_file = st.file_uploader(
-        "Upload Conversions CSV File", 
-        type=["csv"],
-        key="conversions_uploader"
-    )
-    spends_file = st.file_uploader(
-        "Upload Spends Excel File", 
-        type=["xlsx"],
-        key="spends_uploader"
-    )
-    preprocessed_file = st.file_uploader(
-        "Upload Preprocessed CSV File", 
-        type=["csv"],
-        key="preprocessed_uploader"
-    )
+    # File uploaders
+    conversions_file = st.file_uploader("Upload Conversions CSV File", type=["csv"])
+    spends_file = st.file_uploader("Upload Spends Excel File", type=["xlsx"])
+    preprocessed_file = st.file_uploader("Upload Preprocessed CSV File", type=["csv"])
 
-    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10", key="sol_id_input")
+    sol_id_to_filter = st.text_input("Enter solID to filter:", "4_722_10")
+
+    if conversions_file and spends_file and preprocessed_file and sol_id_to_filter:
         with st.spinner("Loading and processing data..."):
             # Load and process the data
             conversions_df = load_conversions(conversions_file, sol_id_to_filter)
@@ -178,16 +195,10 @@ def main():
                 total_new_budget = final_df['Sum_optmSpendUnit'].sum()
                 total_old_budget = final_df['Spend'].sum()
 
-                print(f"[MAIN] total_new_budget: {total_new_budget}, type: {type(total_new_budget)}")
-                print(f"[MAIN] total_new_response: {total_new_response}, type: {type(total_new_response)}")
-                print(f"[MAIN] total_old_budget: {total_old_budget}, type: {type(total_old_budget)}")
-                print(f"[MAIN] total_old_response: {total_old_response}, type: {type(total_old_response)}")
-
+                # Avoid division by zero
                 response_change_kpi = ((total_new_response / total_old_response) - 1) * 100 if total_old_response != 0 else 0
                 budget_change_kpi = ((total_new_budget - total_old_budget) / total_old_budget) * 100 if total_old_budget != 0 else 0
                 cpa_change = ((total_new_budget / total_new_response) / (total_old_budget / total_old_response) - 1) * 100 if total_new_response != 0 and total_old_response != 0 and total_old_budget != 0 else 0
-
-                print(f"[MAIN] cpa_change: {cpa_change}, type: {type(cpa_change)}") # Existing print
 
                 # Rename and select desired columns
                 final_df = final_df.rename(columns={
@@ -211,9 +222,6 @@ def main():
                 final_df['new_response'] = final_df['new_response'].fillna(0)
 
                 display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_change)
-
-if __name__ == "__main__":
-    main()
 
 if __name__ == "__main__":
     main()
