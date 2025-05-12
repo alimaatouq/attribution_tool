@@ -142,13 +142,13 @@ def to_excel(df, budget_kpi, response_kpi, cpa_kpi):
     worksheet.write_number(last_row + 2, 1, response_kpi / 100, percentage_format)
     worksheet.write_string(last_row + 3, 0, 'CPA Change:')
 
-    print(f"[Inside to_excel BEFORE writing CPA] CPA Change Type: {type(cpa_change)}, Value: {cpa_change}")
+    print(f"[Inside to_excel BEFORE writing CPA] CPA Change Type: {type(cpa_kpi)}, Value: {cpa_kpi}") # Corrected line
 
-    if pd.isna(cpa_change) or pd.isinf(cpa_change):
+    if pd.isna(cpa_kpi) or pd.isinf(cpa_kpi):
         worksheet.write_string(last_row + 3, 1, 'nan') # Or some other placeholder
     else:
         try:
-            worksheet.write_number(last_row + 3, 1, cpa_change / 100, percentage_format)
+            worksheet.write_number(last_row + 3, 1, cpa_kpi / 100, percentage_format)
             print("[Inside to_excel AFTER writing CPA] CPA Change written successfully.")
         except Exception as e:
             print(f"[Inside to_excel ERROR writing CPA]: {e}")
