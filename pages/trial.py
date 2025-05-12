@@ -184,7 +184,7 @@ def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_chan
     st.download_button(
         label="Download as Excel",
         data=excel_file,
-        file_name="marketing_analysis.xlsx",
+        file_name="optimization.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
