@@ -178,7 +178,6 @@ def display_dashboard(final_df, budget_change_kpi, response_change_kpi, cpa_chan
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
-
 def main():
     st.title("Marketing Budget and Response Analysis")
 
