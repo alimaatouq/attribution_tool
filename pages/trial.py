@@ -22,7 +22,7 @@ def analyze_file(uploaded_file):
     """
     Analyzes the uploaded pareto_aggregated file to identify submodels
     with zero-coefficient variables, specifically focusing on variables
-    containing 'own' in their name and calculating their spend percentage.
+    containing 'own_' in their name and calculating their spend percentage.
     """
     # Load the Excel file into a DataFrame
     try:
@@ -58,44 +58,48 @@ def analyze_file(uploaded_file):
     else:
         non_zero_summary = pd.DataFrame()
 
-    # --- Part 2: Submodels with 'Own' Zero-Coefficient Variables ---
+    # --- Part 2: Submodels with 'Own_' Zero-Coefficient Variables ---
+    
+    # *** MODIFICATION HERE: Changed 'own' to 'own_' ***
+    OWN_PREFIX = 'own_'
+    
+    # 1. Identify ALL 'own_' variables (for total spend calculation denominator)
+    # Case=False makes the search case-insensitive ('Own_', 'own_', 'OWN_' are included)
+    df_own_vars = df_filtered[df_filtered['rn'].str.contains(OWN_PREFIX, case=False, na=False)].copy()
 
-    # 1. Identify ALL 'own' variables (for total spend calculation denominator)
-    # Case=False makes the search case-insensitive ('Own', 'own', 'OWN' are included)
-    df_own_vars = df_filtered[df_filtered['rn'].str.contains('own_', case=False, na=False)].copy()
-
-    # 2. Calculate total spend on ALL 'own' variables per submodel (Denominator)
+    # 2. Calculate total spend on ALL 'own_' variables per submodel (Denominator)
     total_own_spend = df_own_vars.groupby('solID')['total_spend'].sum().reset_index()
     total_own_spend.rename(columns={'total_spend': 'total_spend_on_all_own'}, inplace=True)
 
     # 3. Identify all zero-coefficient variables (excluding ignored)
     submodels_with_zeros = df_filtered[df_filtered['coef'] == 0].copy()
 
-    # 4. Filter the zero-coefficient variables to include ONLY those with 'own' in their name (Numerator variables)
+    # 4. Filter the zero-coefficient variables to include ONLY those with 'own_' in their name (Numerator variables)
+    # *** MODIFICATION HERE: Changed 'own' to 'own_' ***
     submodels_with_own_zeros = submodels_with_zeros[
-        submodels_with_zeros['rn'].str.contains('own', case=False, na=False)
+        submodels_with_zeros['rn'].str.contains(OWN_PREFIX, case=False, na=False)
     ].copy()
 
-    # If no 'own' zero variables are found, initialize an empty summary
+    # If no 'own_' zero variables are found, initialize an empty summary
     if submodels_with_own_zeros.empty:
         summary = pd.DataFrame()
     else:
-        # 5. Summarize the 'own' zero-coefficient variables for each submodel
+        # 5. Summarize the 'own_' zero-coefficient variables for each submodel
         summary_own_zeros = submodels_with_own_zeros.groupby('solID').agg(
-            own_zero_count=('rn', 'count'), # Count of 'own' zero variables
-            total_spend_on_own_zeros=('total_spend', 'sum'), # Total spend on 'own' zero variables (numerator)
-            own_zero_vars=('rn', lambda x: list(x)), # List of 'own' zero variables
+            own_zero_count=('rn', 'count'), # Count of 'own_' zero variables
+            total_spend_on_own_zeros=('total_spend', 'sum'), # Total spend on 'own_' zero variables (numerator)
+            own_zero_vars=('rn', lambda x: list(x)), # List of 'own_' zero variables
             rsq_train_avg=('rsq_train', 'mean'),
             decomp_rssd_avg=('decomp.rssd', 'mean')
         ).reset_index()
 
-        # 6. Merge the total spend on all 'own' variables into the summary
+        # 6. Merge the total spend on all 'own_' variables into the summary
         summary = pd.merge(summary_own_zeros, total_own_spend, on='solID', how='left')
         
         # Fill NaN values (where a solution has zero-coef 'own' variables but somehow no total 'own' spend)
         summary['total_spend_on_all_own'] = summary['total_spend_on_all_own'].fillna(0)
 
-        # 7. Calculate the percentage of spend on 'own' zero-coef variables
+        # 7. Calculate the percentage of spend on 'own_' zero-coef variables
         # Use np.divide for safe division, returning 0 where denominator is 0
         summary['pct_spend_on_own_zeros'] = np.divide(
             summary['total_spend_on_own_zeros'] * 100,
@@ -122,7 +126,7 @@ def analyze_file(uploaded_file):
             lambda x: f"{x:.2f}%"
         )
 
-        # Sort by the number of zero-coefficient 'own' variables (ascending order)
+        # Sort by the number of zero-coefficient 'own_' variables (ascending order)
         summary = summary.sort_values(by='own_zero_count', ascending=True)
 
     # --- Display Results ---
@@ -132,15 +136,15 @@ def analyze_file(uploaded_file):
     else:
         st.dataframe(non_zero_summary, use_container_width=True)
 
-    st.subheader("Summary of Submodels with 'Own' Zero-Coefficient Variables")
+    st.subheader("Summary of Submodels with 'own\_' Zero-Coefficient Variables")
     st.markdown("""
-        The table below shows models where **'own' variables** have been selected 
+        The table below shows models where **'own\_' prefixed variables** have been selected 
         but given a **zero coefficient** (i.e., they are ineffective). 
-        The **Pct Spend** column shows the proportion of total spend on *all* 'own' variables 
+        The **Pct Spend** column shows the proportion of total spend on *all* 'own\_' variables 
         that was allocated to these ineffective ones.
     """)
     if summary.empty:
-        st.info("No submodels with 'own' zero-coefficient variables found.")
+        st.info("No submodels with 'own\_' zero-coefficient variables found.")
     else:
         # Rename columns for display clarity
         display_summary = summary.rename(columns={
