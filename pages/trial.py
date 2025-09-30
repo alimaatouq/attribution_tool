@@ -62,7 +62,7 @@ def analyze_file(uploaded_file):
 
     # 1. Identify ALL 'own' variables (for total spend calculation denominator)
     # Case=False makes the search case-insensitive ('Own', 'own', 'OWN' are included)
-    df_own_vars = df_filtered[df_filtered['rn'].str.contains('own', case=False, na=False)].copy()
+    df_own_vars = df_filtered[df_filtered['rn'].str.contains('own_', case=False, na=False)].copy()
 
     # 2. Calculate total spend on ALL 'own' variables per submodel (Denominator)
     total_own_spend = df_own_vars.groupby('solID')['total_spend'].sum().reset_index()
