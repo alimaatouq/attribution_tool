@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import re
 from io import BytesIO
-from openpyxl import load_workbook
+from openpyxl import load_workbook # Required for pd.to_excel engine
 
-# Helper function to standardize file format to in-memory Excel BytesIO object
+# --- Helper Functions for Data Processing ---
+
 def convert_csv_to_excel(csv_file):
     """Convert CSV to Excel format (in-memory) to standardize file handling."""
     try:
@@ -20,12 +21,11 @@ def convert_csv_to_excel(csv_file):
     excel_file.seek(0)
     return excel_file
 
-# --- New functions for Max Channel CPA Calculation ---
-
 def standardize_channel_name(name):
     """
     Transforms names like 'Media_Digital_..._1_Impressions' to 'Media Digital ... Impressions'.
-    It removes trailing '_N' and replaces remaining underscores with spaces.
+    It removes trailing '_N' (adstock/saturation iteration) and replaces remaining 
+    underscores with spaces.
     """
     if pd.isna(name):
         return name
@@ -42,19 +42,24 @@ def standardize_channel_name(name):
 
 def calculate_max_channel_cpa(df):
     """
-    Calculates the max 'own_' channel CPA for each model (solID).
+    Calculates the max 'own_' channel CPA for each model (solID), EXCLUDING 
+    variables with a zero coefficient.
     """
     # 1. Filter out non-channel variables
     ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
     df_channels = df[~df['rn'].isin(ignore_vars)].copy()
     
-    # 2. CRUCIAL STEP: Filter to only include variables containing 'own_'
+    # 2. CRUCIAL STEP: Filter to only include variables containing 'own_' AND coef != 0
     OWN_PREFIX = 'own_'
-    df_channels = df_channels[df_channels['rn'].str.contains(OWN_PREFIX, case=False, na=False)].copy()
+    df_channels = df_channels[
+        (df_channels['rn'].str.contains(OWN_PREFIX, case=False, na=False)) &
+        (df_channels['coef'] != 0)
+    ].copy()
 
     if df_channels.empty:
-        # Return an empty DataFrame if no 'own_' variables are found
-        return pd.DataFrame(columns=['solID', 'Max_Channel_CPA', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd'])
+        # Return an empty DataFrame if no non-zero 'own_' variables are found
+        metric_cols = ['solID', 'Max_Channel_CPA', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
+        return pd.DataFrame(columns=metric_cols)
         
     # 3. Apply the standardization function to group adstock/saturation variants
     df_channels['Channel_Name_Std'] = df_channels['rn'].apply(standardize_channel_name)
@@ -79,10 +84,10 @@ def calculate_max_channel_cpa(df):
     ).reset_index()
     
     # 7. Merge model-level metrics for R-squared as a tie-breaker
-    # Use the intercept row or first row for metrics
     metric_cols = ['rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
     model_metrics = df[df['rn'] == '(Intercept)'][['solID'] + metric_cols].copy()
     if model_metrics.empty:
+        # Fallback to group-by if '(Intercept)' row is missing metrics
         model_metrics = df.groupby('solID')[['solID'] + metric_cols].first().reset_index()
     
     # Merge and replace inf/-inf with NaN before ranking
@@ -96,24 +101,23 @@ def rank_and_display_models_by_max_cpa(df):
     """
     Calculates and displays models ranked by the Max 'Own_' Channel CPA.
     """
-    st.subheader("Model Stability Ranking: Max 'Own\_' Channel CPA")
+    st.subheader("Model Stability Ranking: Max 'Own\_' Channel CPA (Non-Zero Coefficients Only)")
     st.markdown("""
-        This table ranks models based on the **lowest Maximum Channel CPA**, considering **only variables containing `own_`**. 
-        This is a proxy for **paid media stability** and consistency, avoiding models where a single paid channel 
-        has an extremely high, outlier CPA.
+        This table ranks models based on the **lowest Maximum Channel CPA**, considering **only paid media variables (`own_`) that have a non-zero coefficient**. 
+        This approach prioritizes channel stability by selecting models where the most inefficient *effective* paid channel still has a relatively low CPA.
     """)
     
     ranking_df = calculate_max_channel_cpa(df.copy())
     
     if ranking_df.empty:
-        st.warning("No models contained 'own\_' variables, or 'own\_' variables had zero effect. Cannot perform this ranking.")
+        st.warning("No models contained effective (non-zero coefficient) 'own\_' variables. Cannot perform this ranking.")
         return
 
-    # Drop rows where Max_Channel_CPA is NaN (i.e., model has only 0 effect channels)
+    # Drop rows where Max_Channel_CPA is NaN (i.e., model has only 0 spend/effect channels)
     ranking_df = ranking_df.dropna(subset=['Max_Channel_CPA'])
 
     if ranking_df.empty:
-        st.warning("No models with calculated Max 'Own\_' Channel CPA were found.")
+        st.warning("No models with calculated Max 'Own\_' Channel CPA were found after excluding zero effect channels.")
         return
 
     # 1. Rank the models: Sort by Max_Channel_CPA (smallest to largest) and then R-Squared (largest to smallest)
@@ -141,24 +145,26 @@ def rank_and_display_models_by_max_cpa(df):
     st.dataframe(ranking_df_display, use_container_width=True, hide_index=True)
 
 
-# --- Original analyze_file modified to call the new ranking function ---
+# --- Analysis Orchestration Function ---
 def analyze_file(uploaded_file):
     """
     Analyzes the uploaded pareto_aggregated file.
-    It performs Max Channel CPA ranking and the original zero-coefficient analysis.
+    It performs Max Channel CPA ranking and the zero-coefficient analysis.
     """
-    # Load the Excel file into a DataFrame
+    # Load the file into a DataFrame
     try:
         uploaded_file.seek(0)
-        df = pd.read_excel(uploaded_file, engine='openpyxl')
-    except Exception as e:
-        # Fallback to CSV if Excel fails, or if it was converted from CSV
-        uploaded_file.seek(0)
-        try:
+        # Attempt to read as Excel first, then CSV if it fails or if the file name suggests CSV
+        if uploaded_file.name.endswith(".xlsx"):
+             df = pd.read_excel(uploaded_file, engine='openpyxl')
+        elif uploaded_file.name.endswith(".csv"):
+             df = pd.read_csv(uploaded_file)
+        else:
+            # Try reading as CSV for robustness if extension is missing/incorrect
             df = pd.read_csv(uploaded_file)
-        except Exception as e:
-            st.error(f"Error loading file. Could not read as Excel or CSV: {e}")
-            return
+    except Exception as e:
+        st.error(f"Error loading file. Could not read as Excel or CSV: {e}")
+        return
 
     # Ensure required columns exist for analysis
     required_cols = ['rn', 'solID', 'coef', 'total_spend', 'xDecompAgg', 'rsq_train', 'decomp.rssd']
@@ -166,46 +172,19 @@ def analyze_file(uploaded_file):
         st.error(f"Missing one or more required columns: {', '.join(required_cols)}. Cannot proceed with analysis.")
         return
         
-    # --- 1. New Max Channel CPA Ranking and Display ---
+    # --- 1. Max Channel CPA Ranking and Display ---
     with st.container():
         rank_and_display_models_by_max_cpa(df.copy())
     
     st.markdown("---")
     
-    # --- 2. Original Zero-Coefficient Analysis (Still focused on 'own_' variables) ---
+    # --- 2. Zero-Coefficient Analysis (Still focused on 'own_' variables) ---
     
-    st.subheader("Submodels with 'own\\_' Zero-Coefficient Variables")
+    st.subheader("Submodels with Ineffective Paid Media ('own\_' Zero-Coefficient Variables)")
     
-    # List of variables to ignore when checking for coefficients
+    # Filter out the rows we always ignore
     ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
-
-    # Filter out the rows with the variables we want to ignore
     df_filtered = df[~df['rn'].isin(ignore_vars)].copy()
-
-    # --- Part 1: All Non-Zero Submodels (Simplified - kept for completeness) ---
-    # This part remains unfiltered, showing all models with all non-zero coeffs
-    all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
-
-    if not all_non_zero_submodels.empty:
-        non_zero_summary = all_non_zero_submodels.groupby('solID').agg(
-            rsq_train_avg=('rsq_train', 'mean'),
-            decomp_rssd_avg=('decomp.rssd', 'mean')
-        ).reset_index()
-
-        non_zero_summary = non_zero_summary.sort_values(by='rsq_train_avg', ascending=False)
-        
-        # Display simplified non-zero summary in an expander
-        with st.expander("Show Submodels with All Non-Zero Coefficients (Simplified)"):
-            non_zero_summary = non_zero_summary.rename(columns={
-                'rsq_train_avg': 'R-sq Avg',
-                'decomp_rssd_avg': 'RSSD Avg',
-                'solID': 'Model ID'
-            })
-            st.dataframe(non_zero_summary, use_container_width=True, hide_index=True)
-
-
-    # --- Part 2: Submodels with 'Own_' Zero-Coefficient Variables ---
-    
     OWN_PREFIX = 'own_'
     
     # Dataframe containing all 'own_' variables (zero and non-zero coefs)
@@ -247,34 +226,22 @@ def analyze_file(uploaded_file):
             where=summary['total_spend_on_all_own'] != 0
         )
         
-        # 6. Reorder and format columns
+        # 6. Final cleanup and formatting
         summary = summary[['solID', 'rsq_train_avg', 'decomp_rssd_avg',
                             'own_zero_count', 'total_spend_on_own_zeros', 'total_spend_on_all_own',
                             'pct_spend_on_own_zeros', 'own_zero_vars']]
 
-        # Format total spend values
-        summary['total_spend_on_own_zeros'] = summary['total_spend_on_own_zeros'].apply(
-            lambda x: f"${x:,.2f}"
-        )
-        summary['total_spend_on_all_own'] = summary['total_spend_on_all_own'].apply(
-            lambda x: f"${x:,.2f}"
-        )
+        summary['total_spend_on_own_zeros'] = summary['total_spend_on_own_zeros'].apply(lambda x: f"${x:,.2f}")
+        summary['total_spend_on_all_own'] = summary['total_spend_on_all_own'].apply(lambda x: f"${x:,.2f}")
+        summary['pct_spend_on_own_zeros'] = summary['pct_spend_on_own_zeros'].apply(lambda x: f"{x:.2f}%")
 
-        # Format percentage column
-        summary['pct_spend_on_own_zeros'] = summary['pct_spend_on_own_zeros'].apply(
-            lambda x: f"{x:.2f}%"
-        )
-
-        # Sort by the number of zero-coefficient 'own_' variables (ascending order)
         summary = summary.sort_values(by='own_zero_count', ascending=True)
 
     # --- Display Results for Original Analysis ---
     
     st.markdown("""
-        The table below shows models where **'own\\_' prefixed paid media variables** have been selected 
-        but given a **zero coefficient** (i.e., they are ineffective). 
-        The **Pct Spend** column shows the proportion of total spend on *all* 'own\\_' variables 
-        that was allocated to these ineffective ones.
+        The table below shows models where **'own\\_' prefixed paid media variables** were selected 
+        but given a **zero coefficient** (representing ineffective spend/variable inclusion).
     """)
     if summary.empty:
         st.info("No submodels with 'own\\_' zero-coefficient variables found.")
@@ -292,8 +259,7 @@ def analyze_file(uploaded_file):
         })
         st.dataframe(display_summary, use_container_width=True, hide_index=True)
 
-
-# Streamlit App UI entry point for a multi-page app
+# --- Streamlit App Entry Point ---
 def main_page_func():
     st.set_page_config(layout="wide")
     st.title("Pareto Aggregation Model Analysis Dashboard")
@@ -312,7 +278,7 @@ def main_page_func():
                 if excel_file_buffer:
                     file_to_analyze = excel_file_buffer
                 else:
-                    st.error("Could not process the uploaded file.")
+                    st.error("Could not process the uploaded CSV file.")
                     return
         
         # Proceed only if file_to_analyze is a valid object
