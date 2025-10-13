@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import re
 from io import BytesIO
 from openpyxl import load_workbook
 
@@ -19,78 +20,121 @@ def convert_csv_to_excel(csv_file):
     excel_file.seek(0)
     return excel_file
 
-# *** New function for CPA ranking and model metric comparison ***
-def rank_and_display_models(df):
+# --- New functions for Max Channel CPA Calculation ---
+
+def standardize_channel_name(name):
     """
-    Extracts model-level metrics, ranks them by CPA, and displays the summary.
+    Transforms names like 'Media_Digital_..._1_Impressions' to 'Media Digital ... Impressions'.
+    It removes trailing '_N' and replaces remaining underscores with spaces.
     """
+    if pd.isna(name):
+        return name
     
-    # 1. Try to extract model-level metrics from the (Intercept) row (Robyn's standard)
-    model_metrics = df[df['rn'] == '(Intercept)'][['solID', 'cpa_total', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']].copy()
+    # 1. Remove '_N' at the end of the name (e.g., _1, _2, _3)
+    # The regex r'_\d+($|_)' looks for an underscore followed by one or more digits, 
+    # either at the end ($) or followed by another underscore (_).
+    name_no_adstock = re.sub(r'_\d+($|_)', '', name)
+    
+    # 2. Replace remaining underscores with spaces, then strip any extra whitespace
+    name_standardized = name_no_adstock.replace('_', ' ').strip()
+    
+    return name_standardized
 
-    # 2. Alternative aggregation if (Intercept) fails or is missing cpa_total
-    if model_metrics.empty or model_metrics['cpa_total'].isnull().all():
-        metric_cols = ['cpa_total', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
-        
-        # Group by solID and take the first non-NA value for the metric columns
-        model_metrics_alt = df.groupby('solID')[metric_cols].first().reset_index()
-        
-        # Replace inf/-inf with NaN for reliable dropna
-        model_metrics_alt = model_metrics_alt.replace([np.inf, -np.inf], np.nan)
-        
-        # Filter out rows where cpa_total is NA
-        model_metrics_alt = model_metrics_alt.dropna(subset=['cpa_total'])
-        
-        model_metrics = model_metrics_alt
+def calculate_max_channel_cpa(df):
+    """
+    Calculates the max channel CPA for each model (solID).
+    """
+    # Filter out non-channel variables (like intercept, trend, season)
+    ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
+    df_channels = df[~df['rn'].isin(ignore_vars)].copy()
+    
+    # Apply the standardization function
+    df_channels['Channel_Name_Std'] = df_channels['rn'].apply(standardize_channel_name)
+    
+    # Aggregate by model (solID) and standardized channel name
+    channel_agg = df_channels.groupby(['solID', 'Channel_Name_Std']).agg(
+        total_spend=('total_spend', 'sum'),
+        total_effect=('xDecompAgg', 'sum'),
+    ).reset_index()
 
+    # Calculate Channel CPA: Spend / Effect. Handle division by zero/near zero.
+    channel_agg['Channel_CPA'] = np.divide(
+        channel_agg['total_spend'],
+        channel_agg['total_effect'],
+        out=np.full_like(channel_agg['total_spend'], np.nan),
+        where=channel_agg['total_effect'] > 1e-6 # Ensure effect is not negligible
+    )
+    
+    # Find the maximum CPA across all channels for each model
+    max_cpa_summary = channel_agg.groupby('solID').agg(
+        Max_Channel_CPA=('Channel_CPA', 'max'),
+    ).reset_index()
+    
+    # Merge model-level metrics for R-squared as a tie-breaker
+    # Use the intercept row or first row for metrics
+    model_metrics = df[df['rn'] == '(Intercept)'][['solID', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']].copy()
     if model_metrics.empty:
-        st.warning("No models with a valid 'cpa_total' were found for ranking.")
+        metric_cols = ['rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
+        model_metrics = df.groupby('solID')[metric_cols].first().reset_index()
+    
+    # Merge and replace inf/-inf with NaN before ranking
+    final_ranking_df = pd.merge(max_cpa_summary, model_metrics, on='solID', how='left')
+    final_ranking_df = final_ranking_df.replace([np.inf, -np.inf], np.nan)
+    
+    return final_ranking_df
+
+# *** Core Ranking and Display Function ***
+def rank_and_display_models_by_max_cpa(df):
+    """
+    Calculates and displays models ranked by the Max Channel CPA.
+    """
+    st.subheader("Model Stability Ranking: Max Channel CPA")
+    st.markdown("""
+        This table ranks models based on the **lowest Maximum Channel CPA**. 
+        This is a proxy for **channel stability** and consistency, avoiding models 
+        where one or two channels have an extremely high, outlier CPA, even if the 
+        overall model CPA (which depends on contribution) is low.
+    """)
+    
+    ranking_df = calculate_max_channel_cpa(df.copy())
+    
+    # Drop rows where Max_Channel_CPA is NaN (i.e., model has only 0 effect channels)
+    ranking_df = ranking_df.dropna(subset=['Max_Channel_CPA'])
+
+    if ranking_df.empty:
+        st.warning("No models with calculated Max Channel CPA were found.")
         return
 
-    # 3. Rank the models: Sort by 'cpa_total' (smallest to largest) and then 'rsq_train' (largest to smallest)
-    model_metrics = model_metrics.sort_values(
-        by=['cpa_total', 'rsq_train'],
+    # 1. Rank the models: Sort by Max_Channel_CPA (smallest to largest) and then R-Squared (largest to smallest)
+    ranking_df = ranking_df.sort_values(
+        by=['Max_Channel_CPA', 'rsq_train'],
         ascending=[True, False]
     ).reset_index(drop=True)
 
-    # 4. Add a Rank column
-    model_metrics['Rank'] = model_metrics.index + 1
+    # 2. Add a Rank column
+    ranking_df['Rank'] = ranking_df.index + 1
 
-    # 5. Select and reorder final columns
-    final_cols = ['Rank', 'solID', 'cpa_total', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
-    model_metrics = model_metrics[final_cols]
-
-    # 6. Format columns for better display
-    model_metrics['CPA Total'] = model_metrics['cpa_total'].apply(lambda x: f"${x:,.4f}")
-    model_metrics['R-Squared (Train)'] = model_metrics['rsq_train'].apply(lambda x: f"{x*100:.2f}%")
-    model_metrics['R-Squared (Validation)'] = model_metrics['rsq_val'].apply(lambda x: f"{x*100:.2f}%")
-    model_metrics['R-Squared (Test)'] = model_metrics['rsq_test'].apply(lambda x: f"{x*100:.2f}%")
-    model_metrics['NRMSE'] = model_metrics['nrmse'].apply(lambda x: f"{x*100:.2f}%")
+    # 3. Format columns for better display
+    ranking_df['Max Channel CPA'] = ranking_df['Max_Channel_CPA'].apply(lambda x: f"${x:,.4f}" if x is not None else "N/A")
+    ranking_df['R-Squared (Train)'] = ranking_df['rsq_train'].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "N/A")
+    ranking_df['NRMSE'] = ranking_df['nrmse'].apply(lambda x: f"{x*100:.2f}%" if pd.notna(x) else "N/A")
     
-    # Rename for display
-    model_metrics = model_metrics.rename(columns={
-        'decomp.rssd': 'Decomp RSSD',
-        'solID': 'Model ID'
+    # 4. Select and rename final columns
+    ranking_df_display = ranking_df[[
+        'Rank', 'solID', 'Max Channel CPA', 'R-Squared (Train)', 'NRMSE', 'decomp.rssd'
+    ]].rename(columns={
+        'solID': 'Model ID',
+        'decomp.rssd': 'Decomp RSSD'
     })
-
-    # Drop the unformatted CPA and R-squared/NRMSE values
-    model_metrics_display = model_metrics.drop(columns=['cpa_total', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse']).copy()
     
-    st.subheader("Model CPA Ranking and Metrics")
-    st.markdown("""
-        This table ranks all models by **CPA Total** (Cost Per Acquisition, smallest to largest).
-        The best models will have a **low CPA** and generally **high R-Squared** (closer to $100\%$) 
-        and **low NRMSE / Decomp RSSD** (closer to $0.00$).
-    """)
-
-    st.dataframe(model_metrics_display, use_container_width=True, hide_index=True)
+    st.dataframe(ranking_df_display, use_container_width=True, hide_index=True)
 
 
 # --- Original analyze_file modified to call the new ranking function ---
 def analyze_file(uploaded_file):
     """
     Analyzes the uploaded pareto_aggregated file.
-    It performs CPA ranking and the original zero-coefficient analysis.
+    It performs Max Channel CPA ranking and the original zero-coefficient analysis.
     """
     # Load the Excel file into a DataFrame
     try:
@@ -100,16 +144,15 @@ def analyze_file(uploaded_file):
         st.error(f"Error loading Excel file: {e}")
         return
 
-    # Ensure required columns exist for full analysis
-    required_cols = ['rn', 'solID', 'coef', 'total_spend', 'cpa_total', 'rsq_train', 'decomp.rssd']
+    # Ensure required columns exist for analysis
+    required_cols = ['rn', 'solID', 'coef', 'total_spend', 'xDecompAgg', 'rsq_train', 'decomp.rssd']
     if not all(col in df.columns for col in required_cols):
-        st.error(f"Missing one or more required columns for full analysis: {', '.join(required_cols)}. CPA ranking might be incomplete.")
-        if not ('solID' in df.columns and 'cpa_total' in df.columns):
-            return
+        st.error(f"Missing one or more required columns: {', '.join(required_cols)}. Cannot proceed with analysis.")
+        return
         
-    # --- 1. New CPA Ranking and Display ---
+    # --- 1. New Max Channel CPA Ranking and Display ---
     with st.container():
-        rank_and_display_models(df.copy())
+        rank_and_display_models_by_max_cpa(df.copy())
     
     st.markdown("---")
     
@@ -235,7 +278,6 @@ def analyze_file(uploaded_file):
 
 
 # Streamlit App UI entry point for a multi-page app
-# This function is what Streamlit will execute when the page is accessed.
 def main_page_func():
     st.set_page_config(layout="wide")
     st.title("Pareto Aggregation Model Analysis Dashboard")
