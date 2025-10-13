@@ -136,3 +136,8 @@ is_section = true
 path = "pages/trial.py"
 name = "Trial Page"
 icon = "🔬"
+
+[[pages]]
+path = "pages/CPA.py"
+name = "CPA"
+icon = ""
