@@ -42,22 +42,30 @@ def standardize_channel_name(name):
 
 def calculate_max_channel_cpa(df):
     """
-    Calculates the max channel CPA for each model (solID).
+    Calculates the max 'own_' channel CPA for each model (solID).
     """
-    # Filter out non-channel variables (like intercept, trend, season)
+    # 1. Filter out non-channel variables
     ignore_vars = ['(Intercept)', 'trend', 'season', 'weekday', 'monthly', 'holiday']
     df_channels = df[~df['rn'].isin(ignore_vars)].copy()
     
-    # Apply the standardization function
+    # 2. CRUCIAL STEP: Filter to only include variables containing 'own_'
+    OWN_PREFIX = 'own_'
+    df_channels = df_channels[df_channels['rn'].str.contains(OWN_PREFIX, case=False, na=False)].copy()
+
+    if df_channels.empty:
+        # Return an empty DataFrame if no 'own_' variables are found
+        return pd.DataFrame(columns=['solID', 'Max_Channel_CPA', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd'])
+        
+    # 3. Apply the standardization function to group adstock/saturation variants
     df_channels['Channel_Name_Std'] = df_channels['rn'].apply(standardize_channel_name)
     
-    # Aggregate by model (solID) and standardized channel name
+    # 4. Aggregate by model (solID) and standardized channel name
     channel_agg = df_channels.groupby(['solID', 'Channel_Name_Std']).agg(
         total_spend=('total_spend', 'sum'),
         total_effect=('xDecompAgg', 'sum'),
     ).reset_index()
 
-    # Calculate Channel CPA: Spend / Effect. Handle division by zero/near zero.
+    # 5. Calculate Channel CPA: Spend / Effect. Handle division by zero/near zero.
     channel_agg['Channel_CPA'] = np.divide(
         channel_agg['total_spend'],
         channel_agg['total_effect'],
@@ -65,17 +73,17 @@ def calculate_max_channel_cpa(df):
         where=channel_agg['total_effect'] > 1e-6 # Ensure effect is not negligible
     )
     
-    # Find the maximum CPA across all channels for each model
+    # 6. Find the maximum CPA across all *filtered 'own_'* channels for each model
     max_cpa_summary = channel_agg.groupby('solID').agg(
         Max_Channel_CPA=('Channel_CPA', 'max'),
     ).reset_index()
     
-    # Merge model-level metrics for R-squared as a tie-breaker
+    # 7. Merge model-level metrics for R-squared as a tie-breaker
     # Use the intercept row or first row for metrics
-    model_metrics = df[df['rn'] == '(Intercept)'][['solID', 'rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']].copy()
+    metric_cols = ['rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
+    model_metrics = df[df['rn'] == '(Intercept)'][['solID'] + metric_cols].copy()
     if model_metrics.empty:
-        metric_cols = ['rsq_train', 'rsq_val', 'rsq_test', 'nrmse', 'decomp.rssd']
-        model_metrics = df.groupby('solID')[metric_cols].first().reset_index()
+        model_metrics = df.groupby('solID')[['solID'] + metric_cols].first().reset_index()
     
     # Merge and replace inf/-inf with NaN before ranking
     final_ranking_df = pd.merge(max_cpa_summary, model_metrics, on='solID', how='left')
@@ -86,23 +94,26 @@ def calculate_max_channel_cpa(df):
 # *** Core Ranking and Display Function ***
 def rank_and_display_models_by_max_cpa(df):
     """
-    Calculates and displays models ranked by the Max Channel CPA.
+    Calculates and displays models ranked by the Max 'Own_' Channel CPA.
     """
-    st.subheader("Model Stability Ranking: Max Channel CPA")
+    st.subheader("Model Stability Ranking: Max 'Own\_' Channel CPA")
     st.markdown("""
-        This table ranks models based on the **lowest Maximum Channel CPA**. 
-        This is a proxy for **channel stability** and consistency, avoiding models 
-        where one or two channels have an extremely high, outlier CPA, even if the 
-        overall model CPA (which depends on contribution) is low.
+        This table ranks models based on the **lowest Maximum Channel CPA**, considering **only variables containing `own_`**. 
+        This is a proxy for **paid media stability** and consistency, avoiding models where a single paid channel 
+        has an extremely high, outlier CPA.
     """)
     
     ranking_df = calculate_max_channel_cpa(df.copy())
     
+    if ranking_df.empty:
+        st.warning("No models contained 'own\_' variables, or 'own\_' variables had zero effect. Cannot perform this ranking.")
+        return
+
     # Drop rows where Max_Channel_CPA is NaN (i.e., model has only 0 effect channels)
     ranking_df = ranking_df.dropna(subset=['Max_Channel_CPA'])
 
     if ranking_df.empty:
-        st.warning("No models with calculated Max Channel CPA were found.")
+        st.warning("No models with calculated Max 'Own\_' Channel CPA were found.")
         return
 
     # 1. Rank the models: Sort by Max_Channel_CPA (smallest to largest) and then R-Squared (largest to smallest)
@@ -141,8 +152,13 @@ def analyze_file(uploaded_file):
         uploaded_file.seek(0)
         df = pd.read_excel(uploaded_file, engine='openpyxl')
     except Exception as e:
-        st.error(f"Error loading Excel file: {e}")
-        return
+        # Fallback to CSV if Excel fails, or if it was converted from CSV
+        uploaded_file.seek(0)
+        try:
+            df = pd.read_csv(uploaded_file)
+        except Exception as e:
+            st.error(f"Error loading file. Could not read as Excel or CSV: {e}")
+            return
 
     # Ensure required columns exist for analysis
     required_cols = ['rn', 'solID', 'coef', 'total_spend', 'xDecompAgg', 'rsq_train', 'decomp.rssd']
@@ -156,7 +172,7 @@ def analyze_file(uploaded_file):
     
     st.markdown("---")
     
-    # --- 2. Original Zero-Coefficient Analysis ---
+    # --- 2. Original Zero-Coefficient Analysis (Still focused on 'own_' variables) ---
     
     st.subheader("Submodels with 'own\\_' Zero-Coefficient Variables")
     
@@ -167,6 +183,7 @@ def analyze_file(uploaded_file):
     df_filtered = df[~df['rn'].isin(ignore_vars)].copy()
 
     # --- Part 1: All Non-Zero Submodels (Simplified - kept for completeness) ---
+    # This part remains unfiltered, showing all models with all non-zero coeffs
     all_non_zero_submodels = df_filtered.groupby('solID').filter(lambda x: (x['coef'] != 0).all())
 
     if not all_non_zero_submodels.empty:
@@ -191,25 +208,24 @@ def analyze_file(uploaded_file):
     
     OWN_PREFIX = 'own_'
     
+    # Dataframe containing all 'own_' variables (zero and non-zero coefs)
     df_own_vars = df_filtered[df_filtered['rn'].str.contains(OWN_PREFIX, case=False, na=False)].copy()
 
     # 1. Calculate total spend on ALL 'own_' variables per submodel (Denominator)
     total_own_spend = df_own_vars.groupby('solID')['total_spend'].sum().reset_index()
     total_own_spend.rename(columns={'total_spend': 'total_spend_on_all_own'}, inplace=True)
 
-    # 2. Identify all zero-coefficient variables (excluding ignored)
-    submodels_with_zeros = df_filtered[df_filtered['coef'] == 0].copy()
-
-    # 3. Filter the zero-coefficient variables to include ONLY those with 'own_' in their name (Numerator variables)
-    submodels_with_own_zeros = submodels_with_zeros[
-        submodels_with_zeros['rn'].str.contains(OWN_PREFIX, case=False, na=False)
+    # 2. Identify all zero-coefficient variables that contain 'own_' (Numerator variables)
+    submodels_with_own_zeros = df_filtered[
+        (df_filtered['coef'] == 0) & 
+        (df_filtered['rn'].str.contains(OWN_PREFIX, case=False, na=False))
     ].copy()
 
     # If no 'own_' zero variables are found, initialize an empty summary
     if submodels_with_own_zeros.empty:
         summary = pd.DataFrame()
     else:
-        # 4. Summarize the 'own_' zero-coefficient variables for each submodel
+        # 3. Summarize the 'own_' zero-coefficient variables for each submodel
         summary_own_zeros = submodels_with_own_zeros.groupby('solID').agg(
             own_zero_count=('rn', 'count'), 
             total_spend_on_own_zeros=('total_spend', 'sum'), 
@@ -218,12 +234,12 @@ def analyze_file(uploaded_file):
             decomp_rssd_avg=('decomp.rssd', 'mean')
         ).reset_index()
 
-        # 5. Merge the total spend on all 'own_' variables into the summary
+        # 4. Merge the total spend on all 'own_' variables into the summary
         summary = pd.merge(summary_own_zeros, total_own_spend, on='solID', how='left')
         
         summary['total_spend_on_all_own'] = summary['total_spend_on_all_own'].fillna(0)
 
-        # 6. Calculate the percentage of spend on 'own_' zero-coef variables
+        # 5. Calculate the percentage of spend on 'own_' zero-coef variables
         summary['pct_spend_on_own_zeros'] = np.divide(
             summary['total_spend_on_own_zeros'] * 100,
             summary['total_spend_on_all_own'],
@@ -231,7 +247,7 @@ def analyze_file(uploaded_file):
             where=summary['total_spend_on_all_own'] != 0
         )
         
-        # 7. Reorder and format columns
+        # 6. Reorder and format columns
         summary = summary[['solID', 'rsq_train_avg', 'decomp_rssd_avg',
                             'own_zero_count', 'total_spend_on_own_zeros', 'total_spend_on_all_own',
                             'pct_spend_on_own_zeros', 'own_zero_vars']]
@@ -255,7 +271,7 @@ def analyze_file(uploaded_file):
     # --- Display Results for Original Analysis ---
     
     st.markdown("""
-        The table below shows models where **'own\\_' prefixed variables** have been selected 
+        The table below shows models where **'own\\_' prefixed paid media variables** have been selected 
         but given a **zero coefficient** (i.e., they are ineffective). 
         The **Pct Spend** column shows the proportion of total spend on *all* 'own\\_' variables 
         that was allocated to these ineffective ones.
@@ -287,15 +303,21 @@ def main_page_func():
 
     # Analyze the uploaded file if it is provided
     if uploaded_file:
-        # Check file type and convert to Excel in memory if CSV
+        # Determine if conversion is needed and perform conversion
         file_to_analyze = uploaded_file
         if uploaded_file.name.endswith(".csv"):
             with st.spinner('Converting CSV to Excel format...'):
-                file_to_analyze = convert_csv_to_excel(uploaded_file)
+                # Read CSV and convert to in-memory Excel BytesIO object
+                excel_file_buffer = convert_csv_to_excel(uploaded_file)
+                if excel_file_buffer:
+                    file_to_analyze = excel_file_buffer
+                else:
+                    st.error("Could not process the uploaded file.")
+                    return
         
-        if file_to_analyze: # Proceed only if conversion was successful
-            with st.spinner('Analyzing file and calculating metrics...'):
-                analyze_file(file_to_analyze)
+        # Proceed only if file_to_analyze is a valid object
+        with st.spinner('Analyzing file and calculating metrics...'):
+            analyze_file(file_to_analyze)
             
 if __name__ == '__main__':
     main_page_func()
