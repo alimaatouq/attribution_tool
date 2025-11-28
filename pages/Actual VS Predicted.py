@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import matplotlib.pyplot as plt
 import io
 
 # Streamlit App Title
@@ -40,23 +39,20 @@ if uploaded_file is not None:
     # Display the plot
     st.plotly_chart(fig)
     
-    # Save the figure using Matplotlib
-    file_name = f"{plot_title}.png".replace(" ", "_")
-    img_bytes = io.BytesIO()
-    plt.figure(figsize=(10, 5))
-    for label, data in melted_df.groupby("Type"):
-        plt.plot(data["ds"], data["Value"], marker='o', label=label)
-    plt.xlabel("Date")
-    plt.ylabel("Values")
-    plt.title(plot_title)
-    plt.xticks(rotation=45)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(img_bytes, format="png")
-    img_bytes.seek(0)
+    # --- Interactive Plot Download Section ---
     
-    # Provide download button
-    st.download_button(label="Download Plot", 
-                       data=img_bytes, 
-                       file_name=file_name, 
-                       mime="image/png")
+    # 1. Convert the Plotly figure to an interactive HTML string
+    html_bytes = fig.to_html(full_html=True, include_plotlyjs='cdn').encode('utf-8')
+    
+    # 2. Define the download file name
+    file_name = f"{plot_title}.html".replace(" ", "_")
+    
+    # 3. Provide the download button for the interactive HTML
+    st.download_button(
+        label="Download Interactive Plot (HTML)", 
+        data=html_bytes, 
+        file_name=file_name, 
+        mime="text/html"
+    )
+
+    st.info("The downloaded HTML file will open in a web browser and retain the interactive hover features.")
