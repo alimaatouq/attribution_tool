@@ -54,7 +54,7 @@ if uploaded_file is not None:
     #    'include_plotlyjs="require"' embeds the necessary JS for full local interactivity (fixing the color issue).
     html_bytes = fig.to_html(
         full_html=True, 
-        include_plotlyjs='require'
+        include_plotlyjs=True
     ).encode('utf-8')
     
     # 2. Define the download file name
