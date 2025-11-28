@@ -10,4 +10,5 @@ plotly
 matplotlib
 st_pages
 numpy
-Kaleido
+kaleido
+
