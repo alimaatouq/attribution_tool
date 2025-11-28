@@ -11,4 +11,5 @@ matplotlib
 st_pages
 numpy
 kaleido
+google-chrome-stable
 
